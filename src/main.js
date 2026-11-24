@@ -14,7 +14,7 @@ const state = {
   results: [], currentIndex: -1, currentTrack: null,
   playing: false, currentTime: 0, duration: 0, volume: 80,
   lyricOffset: 0, lyricScale: 1,
-  visualTheme: "neon-grid", lyricAnimation: "static", edge: "rgb", dark: true,
+  visualTheme: "neon-grid", lyricAnimation: "static", edge: "warm", dark: true,
   lyrics: { mode: "missing", lines: [], plainLines: [] },
   lyricKey: "", renderKey: "",
   browserKey: "", hasServerKey: false, languageMode: "english",
@@ -22,6 +22,7 @@ const state = {
 };
 // Show lines slightly early to hide polling + render latency.
 const LEAD = 0.12;
+const EDGE_MODES = ["warm", "album", "rgb", "off"];
 const TEXT_BASE = 0.8; // global text size (SIZE buttons are relative to this)
 const clock = { base: 0, at: 0 };
 const translationCache = Object.create(null);
@@ -637,8 +638,8 @@ function bindEvents() {
     setStatus("DARK MODE: " + (state.dark ? "ON" : "OFF"));
   });
   els.edgeButton.addEventListener("click", () => {
-    state.edge = state.edge === "rgb" ? "album" : state.edge === "album" ? "off" : "rgb";
-    store.set("retro-edge-v4", state.edge);
+    state.edge = EDGE_MODES[(EDGE_MODES.indexOf(state.edge) + 1) % EDGE_MODES.length];
+    store.set("retro-edge-v5", state.edge);
     renderEdge();
     setStatus("EDGE LIGHT: " + state.edge.toUpperCase());
   });
@@ -734,7 +735,7 @@ async function boot() {
   renderLyricScale(); renderOffset();
   state.browserKey = store.get("retro-yt-key", "");
   state.lyricAnimation = store.get("retro-anim", "static") === "scroll" ? "scroll" : "static";
-  state.edge = ["rgb", "album", "off"].indexOf(store.get("retro-edge-v4", "rgb")) !== -1 ? store.get("retro-edge-v4", "rgb") : "rgb";
+  state.edge = EDGE_MODES.indexOf(store.get("retro-edge-v5", "warm")) !== -1 ? store.get("retro-edge-v5", "warm") : "warm";
   state.dark = store.get("retro-dark", "on") === "on";
   state.visualTheme = store.get("retro-theme", "neon-grid");
   state.languageMode = store.get("retro-lang", "english");
