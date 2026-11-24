@@ -186,6 +186,7 @@ body[data-layout="chat"] .chat { display: flex; }
 .wp-emoji:empty { display: none; }
 .wordpop.empty .wp-cur { visibility: hidden; }
 .wp-cur.pop { animation: wp-pop .18s ease-out both; }
+.wp-cur.pop #wpWord { animation: wp-chip .55s steps(1) both; padding: 0 .12em; }
 @keyframes wp-pop { from { transform: scale(.82); } to { transform: scale(1); } }
 
 /* constellation */
@@ -248,3 +249,20 @@ body[data-dark="off"][data-theme="red-arcade"] .screen, body[data-dark="off"][da
 body[data-dark="off"][data-theme="ice-crt"] .screen { background: radial-gradient(ellipse at center, #071116 0%, #020609 57%, #000 100%); }
 body[data-dark="off"][data-layout="wordpop"] .screen, body[data-dark="off"][data-layout="constellation"] .screen, body[data-dark="off"][data-layout="chat"] .screen { background: var(--art-dark); }
 body[data-dark="off"] .art-glow { opacity: 1; }
+
+/* word highlight chip: appears instantly as the word lands, then drops (no fade) */
+@keyframes wp-chip { 0% { background: color-mix(in srgb, var(--art2) 75%, #000); color: #fbf3c0; } 45%, 100% { background: transparent; color: inherit; } }
+
+/* ===== PLAY MODE: immersive black lyrics, controls only on demand ===== */
+.top-ui, .bottom-ui { display: contents; }
+body[data-mode="play"] .site-shell { padding: 0; }
+body[data-mode="play"] .player { width: 100vw; height: 100vh; height: 100dvh; max-height: none; }
+body[data-mode="play"] .screen { position: absolute; inset: 0; min-height: 0; flex: none; background: #000; }
+body[data-mode="play"] .top-ui, body[data-mode="play"] .bottom-ui { display: block; position: absolute; left: 0; right: 0; z-index: 90; background: rgba(0,0,0,.92); }
+body[data-mode="play"] .top-ui { top: 0; max-height: 70%; overflow-y: auto; }
+body[data-mode="play"] .bottom-ui { bottom: 0; }
+body[data-mode="play"][data-ui="hide"] .top-ui, body[data-mode="play"][data-ui="hide"] .bottom-ui,
+body[data-mode="play"][data-ui="hide"] .song-info, body[data-mode="play"][data-ui="hide"] .theme-selector { display: none; }
+body[data-mode="play"][data-ui="hide"] { cursor: none; }
+body[data-mode="play"] .song-info { top: 62px; } body[data-mode="play"] .theme-selector { top: 62px; }
+body[data-mode="play"] .lyrics-window { inset: 0; } body[data-mode="play"] .wordpop, body[data-mode="play"] .constellation, body[data-mode="play"] .chat { inset: 0; }

@@ -11,9 +11,10 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@700;900&family=Noto+Sans+Devanagari:wght@700;900&family=Noto+Nastaliq+Urdu:wght@700&family=Press+Start+2P&family=Inter:wght@500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css">
 </head>
-<body data-theme="neon-grid" data-layout="classic">
+<body data-theme="neon-grid" data-layout="classic" data-mode="browse" data-ui="show">
 <main class="site-shell">
   <section class="player" aria-label="Retro lyrics player">
+    <div class="top-ui" id="topUi">
     <form id="searchForm" class="search">
       <label class="search-label" for="songInput">SEARCH:</label>
       <input id="songInput" class="retro-input" placeholder="Song, artist, or YouTube URL..." autocomplete="off">
@@ -21,6 +22,7 @@
       <button id="darkButton" class="retro-button toggle-button" type="button" aria-pressed="true" title="Dark mode">DARK: ON</button>
       <button id="edgeButton" class="retro-button toggle-button" type="button" aria-pressed="true" title="Glowing edge">EDGE: ON</button>
       <button id="configButton" class="retro-button config-button" type="button" aria-expanded="false">SETUP</button>
+      <button id="fsButton" class="retro-button toggle-button" type="button" title="Fullscreen">FULL</button>
     </form>
 
     <div id="setupPanel" class="setup-panel" hidden>
@@ -32,6 +34,7 @@
     </div>
 
     <div id="results" class="result-strip" aria-label="Search results" hidden></div>
+    </div>
 
     <div class="screen" id="screen">
       <div class="screen-grid" aria-hidden="true"></div>
@@ -92,6 +95,7 @@
 
     </div>
 
+    <div class="bottom-ui" id="bottomUi">
     <div class="status-top">
       <div class="status-top-left">
         <span>LRC: <span class="value" id="lyricModeTop">NO LRC</span></span>
@@ -140,6 +144,7 @@
           <button class="language-option" type="button" data-language-mode="translate" role="radio" aria-checked="false" title="Translate to English">TRANSLATE</button>
         </div>
       </div>
+    </div>
     </div>
   </section>
 </main>

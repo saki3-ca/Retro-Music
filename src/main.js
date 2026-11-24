@@ -180,9 +180,38 @@ function renderLanguageMode() {
     b.setAttribute("aria-checked", String(b.getAttribute("data-language-mode") === state.languageMode)));
 }
 
+/* ---------- immersive play mode ---------- */
+let uiTimer = 0;
+function setMode(mode) {
+  document.body.setAttribute("data-mode", mode);
+  showUi();
+}
+function uiPinned() {
+  const a = document.activeElement;
+  return !els.results.hidden || !els.setupPanel.hidden ||
+    (a && a.matches && a.matches("input, select")) ||
+    els.topUi.matches(":hover") || els.bottomUi.matches(":hover");
+}
+function showUi() {
+  document.body.setAttribute("data-ui", "show");
+  clearTimeout(uiTimer);
+  uiTimer = setTimeout(function hideUi() {
+    if (document.body.getAttribute("data-mode") !== "play") return;
+    if (uiPinned()) { uiTimer = setTimeout(hideUi, 1500); return; }
+    document.body.setAttribute("data-ui", "hide");
+  }, 3000);
+}
+function toggleFullscreen() {
+  try {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  } catch (e) { /* ignore */ }
+}
+
 /* ---------- track + lyrics loading ---------- */
 function selectTrack(result, index, searchQuery, opts) {
   hideResults();
+  setMode("play");
   state.gen++;
   state.currentTrack = result;
   state.currentIndex = index;
@@ -539,7 +568,7 @@ function bindElements() {
   ["searchForm", "songInput", "searchButton", "configButton", "setupPanel", "serverKeyMessage", "browserKeyCopy", "keyInput",
     "saveKeyButton", "results", "nowLabel", "nowPlaying", "themeSelect", "lyricsWindow", "lyric", "lyricModeTop", "offsetLabelTop",
     "sizeLabelTop", "nextLyricTop", "videoPlaceholder", "previousButton", "playButton", "nextButton", "currentTime", "progress",
-    "duration", "volume", "volumeLabel", "animationButton", "edgeButton", "darkButton", "statusText", "playerStatus", "wordpop", "wpPrev", "wpCur", "wpWord",
+    "duration", "volume", "volumeLabel", "animationButton", "edgeButton", "darkButton", "fsButton", "topUi", "bottomUi", "statusText", "playerStatus", "wordpop", "wpPrev", "wpCur", "wpWord",
     "wpNext", "wpEmoji", "constSvg", "chatStack", "chatMeta"].forEach((id) => { els[id] = $(id); });
 }
 
@@ -551,6 +580,9 @@ const store = {
 
 function bindEvents() {
   els.searchForm.addEventListener("submit", searchSong);
+  els.fsButton.addEventListener("click", toggleFullscreen);
+  ["mousemove", "pointerdown", "touchstart", "wheel"].forEach((ev) => window.addEventListener(ev, showUi, { passive: true }));
+  window.addEventListener("keydown", showUi);
   els.configButton.addEventListener("click", () => showSetup());
   els.saveKeyButton.addEventListener("click", () => {
     state.browserKey = els.keyInput.value.trim();
