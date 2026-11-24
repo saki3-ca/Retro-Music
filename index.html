@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Retro Lyrics Player</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@700;900&family=Noto+Sans+Devanagari:wght@700;900&family=Noto+Nastaliq+Urdu:wght@700&family=Press+Start+2P&family=Inter:wght@500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+<body data-theme="neon-grid" data-layout="classic">
+<main class="site-shell">
+  <section class="player" aria-label="Retro lyrics player">
+    <form id="searchForm" class="search">
+      <label class="search-label" for="songInput">SEARCH:</label>
+      <input id="songInput" class="retro-input" placeholder="Song, artist, or YouTube URL..." autocomplete="off">
+      <button id="searchButton" class="retro-button search-button" type="submit">SEARCH</button>
+      <button id="configButton" class="retro-button config-button" type="button" aria-expanded="false">SETUP</button>
+    </form>
+
+    <div id="setupPanel" class="setup-panel" hidden>
+      <div id="serverKeyMessage" class="server-key-message" hidden>SERVER API KEY IS CONFIGURED // NO KEY NEEDED</div>
+      <div id="browserKeyCopy" class="setup-copy"><strong>YOUTUBE SEARCH KEY</strong><span>Fallback only. Stored in this browser.</span></div>
+      <input id="keyInput" class="retro-input" type="password" placeholder="Paste API key..." aria-label="YouTube API key">
+      <button id="saveKeyButton" class="retro-button" type="button">SAVE</button>
+      <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noreferrer">GET KEY ↗</a>
+    </div>
+
+    <div id="results" class="result-strip" aria-label="Search results" hidden></div>
+
+    <div class="screen" id="screen">
+      <div class="screen-grid" aria-hidden="true"></div>
+      <div class="theme-decor" aria-hidden="true"></div>
+      <div class="art-glow" aria-hidden="true"></div>
+
+      <div class="song-info">
+        <span id="nowLabel">NO SIGNAL</span>
+        <strong id="nowPlaying">RETRO LYRICS PLAYER</strong>
+      </div>
+
+      <div class="theme-selector">
+        <label for="themeSelect">STYLE</label>
+        <select id="themeSelect" class="theme-select" aria-label="Visual style">
+          <optgroup label="Arcade">
+            <option value="crt-glitch">CRT GLITCH</option>
+            <option value="neon-grid" selected>NEON GRID</option>
+            <option value="red-arcade">RED ARCADE</option>
+            <option value="sunset-pixels">SUNSET PIXELS</option>
+            <option value="ice-crt">ICE CRT</option>
+          </optgroup>
+          <optgroup label="Album mood">
+            <option value="word-pop">WORD POP</option>
+            <option value="constellation">CONSTELLATION</option>
+            <option value="chat">CHAT BUBBLES</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <!-- classic: one lyric line -->
+      <div id="lyricsWindow" class="lyrics-window" data-animation="fade" aria-live="polite">
+        <div id="lyric" class="lyric moving paused" data-text="SEARCH &amp; PLAY">SEARCH &amp; PLAY</div>
+      </div>
+
+      <!-- word pop -->
+      <div id="wordpop" class="wordpop" aria-hidden="true">
+        <div class="wp-prev" id="wpPrev"></div>
+        <div class="wp-cur" id="wpCur"><span class="wp-emoji" id="wpEmoji"></span><span id="wpWord"></span></div>
+        <div class="wp-next" id="wpNext"></div>
+      </div>
+
+      <!-- constellation -->
+      <div id="constellation" class="constellation" aria-hidden="true">
+        <svg id="constSvg" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+
+      <!-- chat bubbles -->
+      <div id="chat" class="chat" aria-hidden="true">
+        <div class="chat-meta" id="chatMeta"></div>
+        <div class="chat-stack" id="chatStack"></div>
+      </div>
+
+      <div class="video-dock" id="videoDock">
+        <div class="video-label">YOUTUBE SIGNAL</div>
+        <div id="youtube-player"></div>
+        <div id="videoPlaceholder" class="video-placeholder">SELECT TRACK</div>
+      </div>
+
+      <div class="glitch" aria-hidden="true"></div>
+    </div>
+
+    <div class="status-top">
+      <div class="status-top-left">
+        <span>LRC: <span class="value" id="lyricModeTop">NO LRC</span></span>
+        <span>OFFSET: <span class="value" id="offsetLabelTop">+0.0s</span></span>
+        <span>SIZE: <span class="value" id="sizeLabelTop">100%</span></span>
+      </div>
+      <div class="status-top-right"><span>NEXT: <span class="next-value" id="nextLyricTop">&mdash;</span></span></div>
+    </div>
+
+    <div class="controls">
+      <div class="buttons">
+        <button id="previousButton" class="retro-button transport-small" type="button" aria-label="Previous result">&#9664;</button>
+        <button id="playButton" class="retro-button play" type="button">&#9654; PLAY</button>
+        <button id="nextButton" class="retro-button transport-small" type="button" aria-label="Next result">&#9654;</button>
+      </div>
+      <div class="progress-row">
+        <span id="currentTime">00:00</span>
+        <input id="progress" class="range" type="range" min="0" max="100" step="0.1" value="0" aria-label="Track progress">
+        <span id="duration">00:00</span>
+      </div>
+      <div class="utility-row">
+        <div class="volume"><span>VOL</span>
+          <input id="volume" class="range volume-slider" type="range" min="0" max="100" step="1" value="80" aria-label="Volume">
+          <span id="volumeLabel" class="meter-value">80%</span></div>
+        <div class="sync-controls"><span>SYNC</span>
+          <button class="retro-button sync-button" type="button" data-offset="-0.5">&minus;0.5</button>
+          <button class="retro-button sync-button" type="button" data-offset="zero">0</button>
+          <button class="retro-button sync-button" type="button" data-offset="0.5">+0.5</button></div>
+        <div class="sync-controls"><span>SIZE</span>
+          <button class="retro-button sync-button" type="button" data-size="-0.1">&minus;</button>
+          <button class="retro-button sync-button" type="button" data-size="reset">RST</button>
+          <button class="retro-button sync-button" type="button" data-size="0.1">+</button></div>
+        <div class="sync-controls"><span>ANIM</span>
+          <button id="animationButton" class="retro-button sync-button animation-button" type="button">FADE</button></div>
+      </div>
+    </div>
+
+    <div class="status" role="status">
+      <span id="statusText">STATUS: READY // AWAITING INPUT</span>
+      <div class="status-right">
+        <span id="playerStatus">BOOTING</span>
+        <div id="languageSwitch" class="language-switch" role="radiogroup" aria-label="Lyric language mode">
+          <button class="language-option" type="button" data-language-mode="original" role="radio" aria-checked="false" title="Original script">ORIGINAL</button>
+          <button class="language-option" type="button" data-language-mode="english" role="radio" aria-checked="true" title="Romanized (Banglish/Hindish)">ENGLISH</button>
+          <button class="language-option" type="button" data-language-mode="translate" role="radio" aria-checked="false" title="Translate to English">TRANSLATE</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>
