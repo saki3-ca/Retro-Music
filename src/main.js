@@ -14,7 +14,7 @@ const state = {
   results: [], currentIndex: -1, currentTrack: null,
   playing: false, currentTime: 0, duration: 0, volume: 80,
   lyricOffset: 0, lyricScale: 1,
-  visualTheme: "neon-grid", lyricAnimation: "static", edge: false,
+  visualTheme: "neon-grid", lyricAnimation: "static", edge: true, dark: true,
   lyrics: { mode: "missing", lines: [], plainLines: [] },
   lyricKey: "", renderKey: "",
   browserKey: "", hasServerKey: false, languageMode: "english",
@@ -157,9 +157,14 @@ function renderAnimationMode() {
   els.lyricsWindow.setAttribute("data-animation", state.lyricAnimation);
   els.animationButton.textContent = state.lyricAnimation.toUpperCase();
 }
+function renderDark() {
+  document.body.setAttribute("data-dark", state.dark ? "on" : "off");
+  els.darkButton.textContent = "DARK: " + (state.dark ? "ON" : "OFF");
+  els.darkButton.setAttribute("aria-pressed", String(state.dark));
+}
 function renderEdge() {
   document.body.setAttribute("data-edge", state.edge ? "on" : "off");
-  els.edgeButton.textContent = state.edge ? "ON" : "OFF";
+  els.edgeButton.textContent = "EDGE: " + (state.edge ? "ON" : "OFF");
   els.edgeButton.setAttribute("aria-pressed", String(state.edge));
 }
 function renderVisualTheme() {
@@ -533,7 +538,7 @@ function bindElements() {
   ["searchForm", "songInput", "searchButton", "configButton", "setupPanel", "serverKeyMessage", "browserKeyCopy", "keyInput",
     "saveKeyButton", "results", "nowLabel", "nowPlaying", "themeSelect", "lyricsWindow", "lyric", "lyricModeTop", "offsetLabelTop",
     "sizeLabelTop", "nextLyricTop", "videoPlaceholder", "previousButton", "playButton", "nextButton", "currentTime", "progress",
-    "duration", "volume", "volumeLabel", "animationButton", "edgeButton", "statusText", "playerStatus", "wordpop", "wpPrev", "wpCur", "wpWord",
+    "duration", "volume", "volumeLabel", "animationButton", "edgeButton", "darkButton", "statusText", "playerStatus", "wordpop", "wpPrev", "wpCur", "wpWord",
     "wpNext", "wpEmoji", "constSvg", "chatStack", "chatMeta"].forEach((id) => { els[id] = $(id); });
 }
 
@@ -567,6 +572,12 @@ function bindEvents() {
     store.set("retro-anim", state.lyricAnimation);
     renderAnimationMode(); state.lyricKey = "";
     setStatus("LYRIC MOTION: " + state.lyricAnimation.toUpperCase());
+  });
+  els.darkButton.addEventListener("click", () => {
+    state.dark = !state.dark;
+    store.set("retro-dark", state.dark ? "on" : "off");
+    renderDark();
+    setStatus("DARK MODE: " + (state.dark ? "ON" : "OFF"));
   });
   els.edgeButton.addEventListener("click", () => {
     state.edge = !state.edge;
@@ -643,10 +654,11 @@ async function boot() {
   renderLyricScale(); renderOffset();
   state.browserKey = store.get("retro-yt-key", "");
   state.lyricAnimation = store.get("retro-anim", "static") === "scroll" ? "scroll" : "static";
-  state.edge = store.get("retro-edge", "off") === "on";
+  state.edge = store.get("retro-edge", "on") === "on";
+  state.dark = store.get("retro-dark", "on") === "on";
   state.visualTheme = store.get("retro-theme", "neon-grid");
   state.languageMode = store.get("retro-lang", "english");
-  renderVisualTheme(); renderLanguageMode(); renderAnimationMode(); renderEdge();
+  renderVisualTheme(); renderLanguageMode(); renderAnimationMode(); renderEdge(); renderDark();
   els.keyInput.value = state.browserKey;
   renderKeyState(); loadYouTubeApi(); startClock();
   try {
