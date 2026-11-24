@@ -165,10 +165,10 @@ body[data-theme="ice-crt"] .lyric::before, body[data-theme="ice-crt"] .lyric::af
 
 /* ===== album mood layouts ===== */
 body:not([data-layout="classic"]) body[data-layout="wordpop"] .screen, body[data-layout="constellation"] .screen, body[data-layout="chat"] .screen { background: #000; }
-body[data-layout="wordpop"] .screen::before, body[data-layout="constellation"] .screen::before, body[data-layout="chat"] .screen::before { opacity: .25; }
+body[data-layout="wordpop"] .screen::before, body[data-layout="constellation"] .screen::before, body[data-layout="chat"] .screen::before, body[data-layout="wordpop"] .screen::after, body[data-layout="constellation"] .screen::after, body[data-layout="chat"] .screen::after { opacity: 0; }
 body[data-layout="wordpop"] .screen-grid, body[data-layout="constellation"] .screen-grid, body[data-layout="chat"] .screen-grid { opacity: 0; }
 body[data-layout="wordpop"] .art-glow, body[data-layout="constellation"] .art-glow, body[data-layout="chat"] .art-glow {
-  opacity: .6;
+  opacity: 0;
   background: radial-gradient(ellipse at 30% 20%, color-mix(in srgb, var(--art1) 70%, transparent) 0, transparent 60%), radial-gradient(ellipse at 80% 90%, color-mix(in srgb, var(--art2) 65%, transparent) 0, transparent 55%);
 }
 
@@ -179,10 +179,10 @@ body[data-layout="chat"] .chat { display: flex; }
 
 /* word pop */
 .wordpop { flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: clamp(4px, 1.4vh, 16px); padding: 0 24px; }
-.wp-prev, .wp-next { font-size: calc(clamp(18px, 4.2vh, 46px) * var(--lyric-scale)); font-weight: 700; color: color-mix(in srgb, #fff 55%, var(--art1)); opacity: .55; text-shadow: 0 0 10px var(--art1); min-height: 1.2em; }
-.wp-next { opacity: .4; }
-.wp-cur { display: inline-flex; align-items: center; gap: .3em; font-size: calc(clamp(56px, 17vh, 220px) * var(--lyric-scale)); font-weight: 900; line-height: 1.05; letter-spacing: -.03em; color: #fff; text-shadow: 0 4px 0 var(--art2), 0 0 24px var(--art1); max-width: 100%; overflow-wrap: anywhere; }
-.wp-emoji { font-size: .55em; filter: drop-shadow(0 0 12px var(--art1)); }
+.wp-prev, .wp-next { display: inline-flex; align-items: center; gap: .3em; font-size: calc(clamp(20px, 4.8vh, 52px) * var(--lyric-scale)); font-weight: 800; font-style: italic; min-height: 1.3em; color: color-mix(in srgb, #fff 45%, var(--art1)); }
+.wp-next { color: color-mix(in srgb, #fff 55%, var(--art2)); }
+.wp-cur { display: inline-flex; align-items: center; gap: .3em; font-size: calc(clamp(56px, 17vh, 220px) * var(--lyric-scale)); font-weight: 900; line-height: 1.05; letter-spacing: -.03em; color: color-mix(in srgb, #fff 62%, var(--art1)); max-width: 100%; overflow-wrap: anywhere; }
+.wp-emoji { font-size: .55em; }
 .wp-emoji:empty { display: none; }
 .wordpop.empty .wp-cur { visibility: hidden; }
 .wp-cur.pop { animation: wp-pop .18s ease-out both; }
@@ -226,15 +226,13 @@ body[data-layout="chat"] .chat { display: flex; }
   .lyric,   .lyrics-window .lyric { left: 18px; right: 18px; width: auto; overflow: hidden; text-overflow: ellipsis; transform: translateY(-50%); }
 }
 
-/* ===== EDGE option: rounded corners + glowing frame (off by default) ===== */
-body { --edge-c: var(--theme-accent, #fff); --edge-glow: var(--theme-glow, rgba(255,255,255,.3)); }
-body[data-layout="wordpop"], body[data-layout="constellation"], body[data-layout="chat"] { --edge-c: var(--art1); --edge-glow: color-mix(in srgb, var(--art1) 55%, transparent); }
-body[data-edge="on"] .player { border-radius: 22px; box-shadow: 0 0 0 2px var(--edge-c), 0 0 32px var(--edge-glow); }
-body[data-edge="on"] .screen { border-radius: 18px; margin: 6px 8px; box-shadow: inset 0 0 0 2px var(--edge-c), inset 0 0 34px var(--edge-glow); }
-body[data-edge="on"] .search { border-radius: 22px 22px 0 0; }
-body[data-edge="on"] .status { border-radius: 0 0 22px 22px; }
+/* ===== EDGE option: thin glowing gradient frame, sharp corners (square) ===== */
+body { --edge-a: var(--theme-accent, #fff); --edge-b: var(--theme-secondary, var(--theme-accent, #fff)); --edge-glow: var(--theme-glow, rgba(255,255,255,.3)); }
+body[data-layout="wordpop"], body[data-layout="constellation"], body[data-layout="chat"] { --edge-a: var(--art1); --edge-b: var(--art2); --edge-glow: color-mix(in srgb, var(--art1) 50%, transparent); }
+.player { position: relative; }
+body[data-edge="on"] .player { box-shadow: 0 0 22px var(--edge-glow); }
+body[data-edge="on"] .player::after { content: ""; position: absolute; inset: 0; z-index: 100; pointer-events: none; border: 2px solid transparent; border-image: linear-gradient(135deg, var(--edge-a), var(--edge-b)) 1; box-shadow: inset 0 0 16px var(--edge-glow); }
 #edgeButton[aria-pressed="true"], #darkButton[aria-pressed="true"] { color: var(--theme-accent, #baffba); border-color: var(--theme-accent, #668066); }
-
 .toggle-button { min-width: clamp(64px, 7vw, 92px); }
 
 /* ===== DARK OFF: the colored, tinted look ===== */

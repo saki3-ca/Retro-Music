@@ -14,7 +14,7 @@ const state = {
   results: [], currentIndex: -1, currentTrack: null,
   playing: false, currentTime: 0, duration: 0, volume: 80,
   lyricOffset: 0, lyricScale: 1,
-  visualTheme: "neon-grid", lyricAnimation: "static", edge: false, dark: true,
+  visualTheme: "neon-grid", lyricAnimation: "static", edge: true, dark: true,
   lyrics: { mode: "missing", lines: [], plainLines: [] },
   lyricKey: "", renderKey: "",
   browserKey: "", hasServerKey: false, languageMode: "english",
@@ -360,8 +360,9 @@ function renderWordPop(a) {
     return;
   }
   wp.classList.remove("empty");
-  els.wpPrev.textContent = words[i - 1] || "";
-  els.wpNext.textContent = words[i + 1] || "";
+  const pv = words[i - 1], nx = words[i + 1];
+  els.wpPrev.textContent = pv ? pv + (emojiFor(pv) ? " " + emojiFor(pv) : "") : "";
+  els.wpNext.textContent = nx ? (emojiFor(nx) ? emojiFor(nx) + " " : "") + nx : "";
   els.wpWord.textContent = words[i];
   els.wpEmoji.textContent = emojiFor(words[i]);
   els.wpCur.classList.remove("pop");
@@ -581,7 +582,7 @@ function bindEvents() {
   });
   els.edgeButton.addEventListener("click", () => {
     state.edge = !state.edge;
-    store.set("retro-edge-v2", state.edge ? "on" : "off");
+    store.set("retro-edge-v3", state.edge ? "on" : "off");
     renderEdge();
     setStatus("GLOW EDGE: " + (state.edge ? "ON" : "OFF"));
   });
@@ -654,7 +655,7 @@ async function boot() {
   renderLyricScale(); renderOffset();
   state.browserKey = store.get("retro-yt-key", "");
   state.lyricAnimation = store.get("retro-anim", "static") === "scroll" ? "scroll" : "static";
-  state.edge = store.get("retro-edge-v2", "off") === "on";
+  state.edge = store.get("retro-edge-v3", "on") === "on";
   state.dark = store.get("retro-dark", "on") === "on";
   state.visualTheme = store.get("retro-theme", "neon-grid");
   state.languageMode = store.get("retro-lang", "english");
