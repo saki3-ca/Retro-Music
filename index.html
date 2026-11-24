@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@700;900&family=Noto+Sans+Devanagari:wght@700;900&family=Noto+Nastaliq+Urdu:wght@700&family=Press+Start+2P&family=Inter:wght@500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/src/style.css">
 </head>
-<body data-theme="neon-grid" data-layout="classic" data-mode="browse" data-ui="show">
+<body data-theme="word-pop" data-layout="wordpop" data-mode="browse" data-ui="show">
 <main class="site-shell">
   <section class="player" aria-label="Retro lyrics player">
     <div class="top-ui" id="topUi">
@@ -20,7 +20,7 @@
       <input id="songInput" class="retro-input" placeholder="Song, artist, or YouTube URL..." autocomplete="off">
       <button id="searchButton" class="retro-button search-button" type="submit">SEARCH</button>
       <button id="darkButton" class="retro-button toggle-button" type="button" aria-pressed="true" title="Dark mode">DARK: ON</button>
-      <button id="edgeButton" class="retro-button toggle-button" type="button" aria-pressed="true" title="Edge light: comet / warm / album / off">EDGE: COMET</button>
+      <button id="edgeButton" class="retro-button toggle-button" type="button" aria-pressed="true" title="Edge light: comet / warm / album / off">EDGE: WARM</button>
       <button id="configButton" class="retro-button config-button" type="button" aria-expanded="false">SETUP</button>
       <button id="fsButton" class="retro-button toggle-button" data-fullscreen type="button" title="Fullscreen (F). Press Esc to exit">FULL</button>
     </form>
@@ -51,13 +51,13 @@
         <select id="themeSelect" class="theme-select" aria-label="Visual style">
           <optgroup label="Arcade">
             <option value="crt-glitch">CRT GLITCH</option>
-            <option value="neon-grid" selected>NEON GRID</option>
+            <option value="neon-grid">NEON GRID</option>
             <option value="red-arcade">RED ARCADE</option>
             <option value="sunset-pixels">SUNSET PIXELS</option>
             <option value="ice-crt">ICE CRT</option>
           </optgroup>
           <optgroup label="Album mood">
-            <option value="word-pop">WORD POP</option>
+            <option value="word-pop" selected>WORD POP</option>
             <option value="constellation">CONSTELLATION</option>
             <option value="chat">CHAT BUBBLES</option>
           </optgroup>

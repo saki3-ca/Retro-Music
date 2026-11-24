@@ -14,7 +14,7 @@ const state = {
   results: [], currentIndex: -1, currentTrack: null,
   playing: false, currentTime: 0, duration: 0, volume: 80,
   lyricOffset: 0, lyricScale: 1,
-  visualTheme: "neon-grid", lyricAnimation: "static", edge: "comet", dark: true,
+  visualTheme: "word-pop", lyricAnimation: "static", edge: "warm", dark: true,
   lyrics: { mode: "missing", lines: [], plainLines: [] },
   lyricKey: "", renderKey: "",
   browserKey: "", hasServerKey: false, languageMode: "english",
@@ -22,7 +22,7 @@ const state = {
 };
 // Show lines slightly early to hide polling + render latency.
 const LEAD = 0.12;
-const EDGE_MODES = ["comet", "warm", "album", "off"];
+const EDGE_MODES = ["warm", "comet", "album", "off"];
 const TEXT_BASE = 0.8; // global text size (SIZE buttons are relative to this)
 const clock = { base: 0, at: 0 };
 const translationCache = Object.create(null);
@@ -229,7 +229,7 @@ function renderEdge() {
   els.edgeButton.setAttribute("aria-pressed", String(state.edge !== "off"));
 }
 function renderVisualTheme() {
-  if (THEMES.indexOf(state.visualTheme) === -1) state.visualTheme = "neon-grid";
+  if (THEMES.indexOf(state.visualTheme) === -1) state.visualTheme = "word-pop";
   document.body.setAttribute("data-theme", state.visualTheme);
   document.body.setAttribute("data-layout", LAYOUTS[state.visualTheme] || "classic");
   els.themeSelect.value = state.visualTheme;
@@ -461,9 +461,11 @@ function wordIndexFor(a, words) {
 
 /* ----- word pop ----- */
 function renderWordPop(a) {
-  const words = lineWords(a);
-  const i = wordIndexFor(a, words);
+  const idle = a.key === "idle";
+  const words = idle ? ["SEARCH & PLAY"] : lineWords(a);
+  const i = idle ? 0 : wordIndexFor(a, words);
   const wp = els.wordpop;
+  wp.classList.toggle("idle", idle);
   if (i < 0) {
     wp.classList.add("empty");
     els.wpWord.textContent = ""; els.wpEmoji.textContent = "";
@@ -680,7 +682,7 @@ function bindEvents() {
 
   els.themeSelect.addEventListener("change", () => {
     state.visualTheme = els.themeSelect.value;
-    store.set("retro-theme", state.visualTheme);
+    store.set("retro-theme-v2", state.visualTheme);
     renderVisualTheme();
     setStatus("VISUAL STYLE: " + els.themeSelect.options[els.themeSelect.selectedIndex].text);
   });
@@ -698,7 +700,7 @@ function bindEvents() {
   });
   els.edgeButton.addEventListener("click", () => {
     state.edge = EDGE_MODES[(EDGE_MODES.indexOf(state.edge) + 1) % EDGE_MODES.length];
-    store.set("retro-edge-v6", state.edge);
+    store.set("retro-edge-v7", state.edge);
     renderEdge();
     setStatus("EDGE LIGHT: " + state.edge.toUpperCase());
   });
@@ -794,9 +796,9 @@ async function boot() {
   renderLyricScale(); renderOffset();
   state.browserKey = store.get("retro-yt-key", "");
   state.lyricAnimation = store.get("retro-anim", "static") === "scroll" ? "scroll" : "static";
-  state.edge = EDGE_MODES.indexOf(store.get("retro-edge-v6", "comet")) !== -1 ? store.get("retro-edge-v6", "comet") : "comet";
+  state.edge = EDGE_MODES.indexOf(store.get("retro-edge-v7", "warm")) !== -1 ? store.get("retro-edge-v7", "warm") : "warm";
   state.dark = store.get("retro-dark", "on") === "on";
-  state.visualTheme = store.get("retro-theme", "neon-grid");
+  state.visualTheme = store.get("retro-theme-v2", "word-pop");
   state.languageMode = store.get("retro-lang", "english");
   renderVisualTheme(); renderLanguageMode(); renderAnimationMode(); renderEdge(); renderDark();
   if (window.ResizeObserver) new ResizeObserver(() => { if (state.edge !== "off") buildEdge(); }).observe(els.edge);

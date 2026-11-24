@@ -6,7 +6,7 @@
   --text-light: #ffa8c5;
   --text-white: #ffffff;
   --ink: #d2d2d2; --phosphor: #d9ffd9;
-  --art1: #ff5fa2; --art2: #8a4dff; --art-dark: #12041a;
+  --art1: #ff2a75; --art2: #ff8c00; --art-dark: #050505;
   --lyric-scale: 1; --fit-scale: 1;
 }
 * { box-sizing: border-box; }
@@ -280,9 +280,9 @@ body[data-mode="play"] .bubble { font-size: calc(clamp(28px, min(8vh, 4.6vw), 92
 body[data-mode="play"] .bubble.old { font-size: calc(clamp(20px, min(5.2vh, 3.2vw), 64px) * var(--lyric-scale)); }
 
 /* ===== EDGE: two neon comets racing around the screen edge (built in JS as SVG) ===== */
-.edge { --edge-c1: #ff8c00; --edge-c2: #5a5cff; --edge-h1: color-mix(in srgb, #fff 62%, var(--edge-c1)); --edge-h2: color-mix(in srgb, #fff 62%, var(--edge-c2)); position: absolute; inset: 0; z-index: 100; pointer-events: none; display: none; overflow: hidden; }
+.edge { --edge-c1: var(--pink); --edge-c2: var(--orange); --edge-h1: color-mix(in srgb, #fff 62%, var(--edge-c1)); --edge-h2: color-mix(in srgb, #fff 62%, var(--edge-c2)); position: absolute; inset: 0; z-index: 100; pointer-events: none; display: none; overflow: hidden; }
 body:not([data-edge="off"]) .edge { display: block; }
-body[data-edge="warm"] .edge { --edge-c1: var(--pink); --edge-c2: var(--orange); }
+body[data-edge="comet"] .edge { --edge-c1: #ff8c00; --edge-c2: #5a5cff; }
 body[data-edge="album"] .edge { --edge-c1: var(--art1); --edge-c2: var(--art2); }
 .edge svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .edge path, .edge rect { fill: none; stroke-linecap: butt; }
@@ -294,3 +294,6 @@ body.is-fs { cursor: none; }
 /* text 20% smaller + symmetric so lyrics sit in the exact middle */
 .lyrics-window { inset: 50px 0 50px; } .wordpop, .constellation, .chat { inset: 50px 0 50px; }
 body[data-mode="play"] .lyrics-window, body[data-mode="play"] .wordpop, body[data-mode="play"] .constellation, body[data-mode="play"] .chat { inset: 0; }
+
+.wordpop.idle .wp-cur { font-size: calc(clamp(36px, 8vh, 110px) * var(--lyric-scale)); letter-spacing: .04em; color: var(--text-pink); }
+body[data-mode="play"] .wordpop.idle .wp-cur { font-size: calc(clamp(36px, 8vh, 110px) * var(--lyric-scale)); }
