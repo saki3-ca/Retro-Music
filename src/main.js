@@ -14,12 +14,15 @@ const state = {
   results: [], currentIndex: -1, currentTrack: null,
   playing: false, currentTime: 0, duration: 0, volume: 80,
   lyricOffset: 0, lyricScale: 1,
-  visualTheme: "neon-grid", lyricAnimation: "fade",
+  visualTheme: "neon-grid", lyricAnimation: "static", edge: false,
   lyrics: { mode: "missing", lines: [], plainLines: [] },
   lyricKey: "", renderKey: "",
   browserKey: "", hasServerKey: false, languageMode: "english",
   timeline: null, gen: 0
 };
+// Show lines slightly early to hide polling + render latency.
+const LEAD = 0.12;
+const clock = { base: 0, at: 0 };
 const translationCache = Object.create(null);
 const els = {};
 const $ = (id) => document.getElementById(id);
@@ -150,9 +153,14 @@ function renderLyricScale() {
   els.sizeLabelTop.textContent = Math.round(state.lyricScale * 100) + "%";
 }
 function renderAnimationMode() {
-  state.lyricAnimation = state.lyricAnimation === "scroll" ? "scroll" : "fade";
+  state.lyricAnimation = state.lyricAnimation === "scroll" ? "scroll" : "static";
   els.lyricsWindow.setAttribute("data-animation", state.lyricAnimation);
   els.animationButton.textContent = state.lyricAnimation.toUpperCase();
+}
+function renderEdge() {
+  document.body.setAttribute("data-edge", state.edge ? "on" : "off");
+  els.edgeButton.textContent = state.edge ? "ON" : "OFF";
+  els.edgeButton.setAttribute("aria-pressed", String(state.edge));
 }
 function renderVisualTheme() {
   if (THEMES.indexOf(state.visualTheme) === -1) state.visualTheme = "neon-grid";
@@ -174,6 +182,7 @@ function selectTrack(result, index, searchQuery, opts) {
   state.currentTrack = result;
   state.currentIndex = index;
   state.currentTime = 0; state.duration = 0;
+  clock.base = 0; clock.at = performance.now();
   state.pendingTrack = result;
   state.lyrics = { mode: "missing", lines: [], plainLines: [] };
   state.timeline = null; state.lyricKey = ""; state.renderKey = "";
@@ -241,7 +250,7 @@ function getTimeline() {
 
 // Returns the current line (+ its word index) for the clock.
 function activeInfo() {
-  const t = Math.max(0, state.currentTime + state.lyricOffset);
+  const t = Math.max(0, state.currentTime + state.lyricOffset + LEAD);
   const tl = state.lyrics.mode === "missing" ? null : getTimeline();
   if (!tl || !tl.lines.length) {
     return state.currentTrack
@@ -283,35 +292,34 @@ function tick() {
   }
 }
 
-/* ----- classic ----- */
+/* ----- classic (static cut, or horizontal scroll) ----- */
 function renderClassic(a) {
+  const scroll = state.lyricAnimation === "scroll";
   if (a.key === state.lyricKey) {
-    els.lyric.classList.toggle("paused", !state.playing);
-    els.lyric.style.animationPlayState = state.playing ? "running" : "paused";
+    if (scroll) {
+      els.lyric.classList.toggle("paused", !state.playing);
+      els.lyric.style.animationPlayState = state.playing ? "running" : "paused";
+    }
     return;
   }
   state.lyricKey = a.key;
-  let text = displayText(a.text);
+  const text = displayText(a.text);
   const next = displayText(a.next);
-  const shown = state.languageMode === "translate" ? text.toUpperCase() : text;
+  const caps = state.languageMode === "translate";
+  const shown = caps ? text.toUpperCase() : text;
   els.lyric.setAttribute("lang", state.languageMode === "original" && needsRomanization(text) ? "" : "en");
-  let fit = 1;
-  if (state.lyricAnimation === "fade") {
-    const n = shown.length;
-    fit = n > 86 ? .52 : n > 66 ? .62 : n > 48 ? .74 : n > 34 ? .86 : 1;
-  }
+  const n = shown.length;
+  const fit = scroll ? 1 : n > 86 ? .52 : n > 66 ? .62 : n > 48 ? .74 : n > 34 ? .86 : 1;
   els.lyric.style.setProperty("--fit-scale", fit.toFixed(2));
-  els.nextLyricTop.textContent = (state.languageMode === "translate" ? next.toUpperCase() : next) || "—";
+  els.nextLyricTop.textContent = (caps ? next.toUpperCase() : next) || "\u2014";
   els.lyric.textContent = shown;
   els.lyric.setAttribute("data-text", shown);
-  const t = Math.max(0, state.currentTime + state.lyricOffset);
+  if (!scroll) { els.lyric.classList.remove("moving"); return; }
+  const t = Math.max(0, state.currentTime + state.lyricOffset + LEAD);
   const timed = Number.isFinite(a.start) && Number.isFinite(a.end) && a.end > a.start;
   const win = timed ? a.end - a.start : 0;
-  const scrollSecs = Math.max(8, Math.min(18, shown.length * .18));
-  let dur = state.lyricAnimation === "scroll"
-    ? (timed ? Math.min(win, scrollSecs) : scrollSecs)
-    : (timed ? win : Math.max(4, Math.min(10, shown.length * .14)));
-  dur = Math.max(.35, dur);
+  const scrollSecs = Math.max(8, Math.min(18, n * .18));
+  const dur = Math.max(.35, timed ? Math.min(win, scrollSecs) : scrollSecs);
   const elapsed = Math.min(timed ? Math.max(0, t - a.start) : 0, Math.max(0, dur - .01));
   els.lyric.style.setProperty("--lyric-speed", dur.toFixed(3) + "s");
   els.lyric.style.setProperty("--lyric-delay", (-elapsed).toFixed(3) + "s");
@@ -497,9 +505,11 @@ function initPlayer() {
         if (state.pendingTrack) { state.player.loadVideoById(state.pendingTrack.videoId); state.pendingTrack = null; }
       },
       onStateChange(e) {
+        syncClock();
         state.playing = e.data === 1;
         els.playButton.textContent = state.playing ? "Ⅱ PAUSE" : "▶ PLAY";
         els.lyric.classList.toggle("paused", !state.playing);
+        clock.at = performance.now();
         document.body.classList.toggle("is-playing", state.playing);
         if (e.data === 1) hideResults();
         if (e.data === 2) setStatus("PAUSED");
@@ -523,7 +533,7 @@ function bindElements() {
   ["searchForm", "songInput", "searchButton", "configButton", "setupPanel", "serverKeyMessage", "browserKeyCopy", "keyInput",
     "saveKeyButton", "results", "nowLabel", "nowPlaying", "themeSelect", "lyricsWindow", "lyric", "lyricModeTop", "offsetLabelTop",
     "sizeLabelTop", "nextLyricTop", "videoPlaceholder", "previousButton", "playButton", "nextButton", "currentTime", "progress",
-    "duration", "volume", "volumeLabel", "animationButton", "statusText", "playerStatus", "wordpop", "wpPrev", "wpCur", "wpWord",
+    "duration", "volume", "volumeLabel", "animationButton", "edgeButton", "statusText", "playerStatus", "wordpop", "wpPrev", "wpCur", "wpWord",
     "wpNext", "wpEmoji", "constSvg", "chatStack", "chatMeta"].forEach((id) => { els[id] = $(id); });
 }
 
@@ -553,10 +563,16 @@ function bindEvents() {
     setStatus("VISUAL STYLE: " + els.themeSelect.options[els.themeSelect.selectedIndex].text);
   });
   els.animationButton.addEventListener("click", () => {
-    state.lyricAnimation = state.lyricAnimation === "fade" ? "scroll" : "fade";
+    state.lyricAnimation = state.lyricAnimation === "static" ? "scroll" : "static";
     store.set("retro-anim", state.lyricAnimation);
     renderAnimationMode(); state.lyricKey = "";
-    setStatus("LYRIC ANIMATION: " + state.lyricAnimation.toUpperCase());
+    setStatus("LYRIC MOTION: " + state.lyricAnimation.toUpperCase());
+  });
+  els.edgeButton.addEventListener("click", () => {
+    state.edge = !state.edge;
+    store.set("retro-edge", state.edge ? "on" : "off");
+    renderEdge();
+    setStatus("GLOW EDGE: " + (state.edge ? "ON" : "OFF"));
   });
   els.progress.addEventListener("input", () => {
     if (!state.player || !state.duration) return;
@@ -590,29 +606,47 @@ function bindEvents() {
   });
 }
 
+// The YouTube API is polled a few times a second; between polls the clock is
+// extrapolated with performance.now() so lyrics advance smoothly (no 100ms stair-steps).
+function syncClock() {
+  if (!state.playerReady || !state.player || typeof state.player.getCurrentTime !== "function") return;
+  const t = Number(state.player.getCurrentTime());
+  const d = Number(state.player.getDuration());
+  if (Number.isFinite(t)) { clock.base = t; clock.at = performance.now(); }
+  if (Number.isFinite(d)) state.duration = d;
+}
+
+let lastShownSecond = -1;
 function startClock() {
   window.setInterval(() => {
-    if (state.playerReady && state.player && typeof state.player.getCurrentTime === "function") {
-      const t = Number(state.player.getCurrentTime());
-      const d = Number(state.player.getDuration());
-      if (Number.isFinite(t)) state.currentTime = t;
-      if (Number.isFinite(d)) state.duration = d;
-      els.currentTime.textContent = formatTime(state.currentTime);
+    syncClock();
+    const sec = Math.floor(clock.base);
+    if (sec !== lastShownSecond) {
+      lastShownSecond = sec;
+      els.currentTime.textContent = formatTime(clock.base);
       els.duration.textContent = formatTime(state.duration);
-      els.progress.value = state.duration ? String(Math.min(100, (state.currentTime / state.duration) * 100)) : "0";
     }
+    if (state.duration && document.activeElement !== els.progress) {
+      els.progress.value = String(Math.min(100, (clock.base / state.duration) * 100));
+    }
+  }, 250);
+  const frame = () => {
+    state.currentTime = state.playing ? clock.base + (performance.now() - clock.at) / 1000 : clock.base;
     tick();
-  }, 100);
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
 }
 
 async function boot() {
   bindElements(); bindEvents();
   renderLyricScale(); renderOffset();
   state.browserKey = store.get("retro-yt-key", "");
-  state.lyricAnimation = store.get("retro-anim", "fade") === "scroll" ? "scroll" : "fade";
+  state.lyricAnimation = store.get("retro-anim", "static") === "scroll" ? "scroll" : "static";
+  state.edge = store.get("retro-edge", "off") === "on";
   state.visualTheme = store.get("retro-theme", "neon-grid");
   state.languageMode = store.get("retro-lang", "english");
-  renderVisualTheme(); renderLanguageMode(); renderAnimationMode();
+  renderVisualTheme(); renderLanguageMode(); renderAnimationMode(); renderEdge();
   els.keyInput.value = state.browserKey;
   renderKeyState(); loadYouTubeApi(); startClock();
   try {

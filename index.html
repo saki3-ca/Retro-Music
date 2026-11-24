@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#000000">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Retro Lyrics Player</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -58,7 +60,7 @@
       </div>
 
       <!-- classic: one lyric line -->
-      <div id="lyricsWindow" class="lyrics-window" data-animation="fade" aria-live="polite">
+      <div id="lyricsWindow" class="lyrics-window" data-animation="static" aria-live="polite">
         <div id="lyric" class="lyric moving paused" data-text="SEARCH &amp; PLAY">SEARCH &amp; PLAY</div>
       </div>
 
@@ -86,7 +88,6 @@
         <div id="videoPlaceholder" class="video-placeholder">SELECT TRACK</div>
       </div>
 
-      <div class="glitch" aria-hidden="true"></div>
     </div>
 
     <div class="status-top">
@@ -122,7 +123,9 @@
           <button class="retro-button sync-button" type="button" data-size="reset">RST</button>
           <button class="retro-button sync-button" type="button" data-size="0.1">+</button></div>
         <div class="sync-controls"><span>ANIM</span>
-          <button id="animationButton" class="retro-button sync-button animation-button" type="button">FADE</button></div>
+          <button id="animationButton" class="retro-button sync-button animation-button" type="button">STATIC</button></div>
+        <div class="sync-controls"><span>EDGE</span>
+          <button id="edgeButton" class="retro-button sync-button" type="button" aria-pressed="false" title="Rounded, glowing edge">OFF</button></div>
       </div>
     </div>
 
