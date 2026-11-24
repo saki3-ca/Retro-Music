@@ -14,7 +14,7 @@ const state = {
   results: [], currentIndex: -1, currentTrack: null,
   playing: false, currentTime: 0, duration: 0, volume: 80,
   lyricOffset: 0, lyricScale: 1,
-  visualTheme: "neon-grid", lyricAnimation: "static", edge: true, dark: true,
+  visualTheme: "neon-grid", lyricAnimation: "static", edge: false, dark: true,
   lyrics: { mode: "missing", lines: [], plainLines: [] },
   lyricKey: "", renderKey: "",
   browserKey: "", hasServerKey: false, languageMode: "english",
@@ -581,7 +581,7 @@ function bindEvents() {
   });
   els.edgeButton.addEventListener("click", () => {
     state.edge = !state.edge;
-    store.set("retro-edge", state.edge ? "on" : "off");
+    store.set("retro-edge-v2", state.edge ? "on" : "off");
     renderEdge();
     setStatus("GLOW EDGE: " + (state.edge ? "ON" : "OFF"));
   });
@@ -654,7 +654,7 @@ async function boot() {
   renderLyricScale(); renderOffset();
   state.browserKey = store.get("retro-yt-key", "");
   state.lyricAnimation = store.get("retro-anim", "static") === "scroll" ? "scroll" : "static";
-  state.edge = store.get("retro-edge", "on") === "on";
+  state.edge = store.get("retro-edge-v2", "off") === "on";
   state.dark = store.get("retro-dark", "on") === "on";
   state.visualTheme = store.get("retro-theme", "neon-grid");
   state.languageMode = store.get("retro-lang", "english");
