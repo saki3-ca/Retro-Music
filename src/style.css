@@ -234,8 +234,8 @@ body[data-layout="chat"] .chat { display: flex; }
 body { --edge-a: var(--theme-accent, #fff); --edge-b: var(--theme-secondary, var(--theme-accent, #fff)); --edge-glow: var(--theme-glow, rgba(255,255,255,.3)); }
 body[data-layout="wordpop"], body[data-layout="constellation"], body[data-layout="chat"] { --edge-a: var(--art1); --edge-b: var(--art2); --edge-glow: color-mix(in srgb, var(--art1) 50%, transparent); }
 .player { position: relative; }
-body[data-edge="on"] .player { box-shadow: 0 0 22px var(--edge-glow); }
-body[data-edge="on"] .player::after { content: ""; position: absolute; inset: 0; z-index: 100; pointer-events: none; border: 2px solid transparent; border-image: linear-gradient(135deg, var(--edge-a), var(--edge-b)) 1; box-shadow: inset 0 0 16px var(--edge-glow); }
+body[data-edge="on"] .player { box-shadow: 0 0 36px var(--edge-glow); }
+body[data-edge="on"] .player::after { content: ""; position: absolute; inset: 0; z-index: 100; pointer-events: none; border: var(--edge-w, 7px) solid transparent; border-image: linear-gradient(135deg, var(--edge-a), var(--edge-b)) 1; box-shadow: inset 0 0 34px var(--edge-glow); }
 #edgeButton[aria-pressed="true"], #darkButton[aria-pressed="true"] { color: var(--theme-accent, #baffba); border-color: var(--theme-accent, #668066); }
 .toggle-button { min-width: clamp(64px, 7vw, 92px); }
 
