@@ -14,7 +14,7 @@ const state = {
   results: [], currentIndex: -1, currentTrack: null,
   playing: false, currentTime: 0, duration: 0, volume: 80,
   lyricOffset: 0, lyricScale: 1,
-  visualTheme: "neon-grid", lyricAnimation: "static", edge: "warm", dark: true,
+  visualTheme: "neon-grid", lyricAnimation: "static", edge: "comet", dark: true,
   lyrics: { mode: "missing", lines: [], plainLines: [] },
   lyricKey: "", renderKey: "",
   browserKey: "", hasServerKey: false, languageMode: "english",
@@ -22,7 +22,7 @@ const state = {
 };
 // Show lines slightly early to hide polling + render latency.
 const LEAD = 0.12;
-const EDGE_MODES = ["warm", "album", "rgb", "off"];
+const EDGE_MODES = ["comet", "warm", "album", "off"];
 const TEXT_BASE = 0.8; // global text size (SIZE buttons are relative to this)
 const clock = { base: 0, at: 0 };
 const translationCache = Object.create(null);
@@ -164,8 +164,67 @@ function renderDark() {
   els.darkButton.textContent = "DARK: " + (state.dark ? "ON" : "OFF");
   els.darkButton.setAttribute("aria-pressed", String(state.dark));
 }
+/* ----- edge: two comets with fading tails racing around the perimeter ----- */
+const SVGNS = "http://www.w3.org/2000/svg";
+let edgeAnims = [];
+let edgeSize = "";
+const COMET_LAYERS = 14;          // stacked strokes of decreasing length = a tail that fades out
+const COMET_SHARE = 0.36;        // comet length as a share of the whole perimeter
+const COMET_LAP_MS = 5200;
+
+function buildEdge() {
+  const host = els.edge;
+  if (!host) return;
+  const w = host.clientWidth, h = host.clientHeight;
+  if (!w || !h) return;
+  const key = w + "x" + h;
+  if (key === edgeSize && host.firstChild) return;
+  edgeSize = key;
+  edgeAnims.forEach((a) => a.cancel());
+  edgeAnims = [];
+  host.replaceChildren();
+
+  const inset = 5;
+  const rw = w - inset * 2, rh = h - inset * 2;
+  const P = 2 * (rw + rh);
+  const svg = document.createElementNS(SVGNS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
+  const d = `M${inset} ${inset} H${inset + rw} V${inset + rh} H${inset} Z`; // clockwise, sharp corners
+  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  [{ color: "var(--edge-c1)", hot: "var(--edge-h1)", phase: 0 }, { color: "var(--edge-c2)", hot: "var(--edge-h2)", phase: 0.5 }].forEach((comet) => {
+    // wide soft glow first, thin bright core on top
+    [{ width: 20, alpha: 0.03 }, { width: 8, alpha: 0.06 }, { width: 3.4, alpha: 0.13 }, { width: 1.8, alpha: 0.22, hot: true }].forEach((pass) => {
+      for (let i = pass.hot ? 6 : 0; i < COMET_LAYERS; i++) {
+        const len = P * COMET_SHARE * (1 - i / COMET_LAYERS);
+        const path = document.createElementNS(SVGNS, "path");
+        path.setAttribute("d", d);
+        path.setAttribute("stroke-dasharray", `${len.toFixed(1)} ${(P - len).toFixed(1)}`);
+        path.style.stroke = pass.hot ? comet.hot : comet.color;
+        path.style.strokeWidth = pass.width + "px";
+        path.style.strokeOpacity = String(pass.alpha);
+        path.style.fill = "none";
+        svg.appendChild(path);
+        if (!reduce) {
+          // head position runs 0 -> P; dash ends at the head, so offset = len - head
+          const a = path.animate(
+            [{ strokeDashoffset: len }, { strokeDashoffset: len - P }],
+            { duration: COMET_LAP_MS, iterations: Infinity, easing: "linear", delay: -COMET_LAP_MS * comet.phase }
+          );
+          edgeAnims.push(a);
+        } else {
+          path.style.strokeDashoffset = String(len - P * (0.25 + comet.phase));
+        }
+      }
+    });
+  });
+  host.appendChild(svg);
+}
+
 function renderEdge() {
   document.body.setAttribute("data-edge", state.edge);
+  if (state.edge !== "off") buildEdge();
+  edgeAnims.forEach((a) => (state.edge === "off" ? a.pause() : a.play()));
   els.edgeButton.textContent = "EDGE: " + state.edge.toUpperCase();
   els.edgeButton.setAttribute("aria-pressed", String(state.edge !== "off"));
 }
@@ -593,7 +652,7 @@ function bindElements() {
   ["searchForm", "songInput", "searchButton", "configButton", "setupPanel", "serverKeyMessage", "browserKeyCopy", "keyInput",
     "saveKeyButton", "results", "nowLabel", "nowPlaying", "themeSelect", "lyricsWindow", "lyric", "lyricModeTop", "offsetLabelTop",
     "sizeLabelTop", "nextLyricTop", "videoPlaceholder", "previousButton", "playButton", "nextButton", "currentTime", "progress",
-    "duration", "volume", "volumeLabel", "animationButton", "edgeButton", "darkButton", "fsButton", "topUi", "bottomUi", "statusText", "playerStatus", "wordpop", "wpPrev", "wpCur", "wpWord",
+    "duration", "volume", "volumeLabel", "animationButton", "edgeButton", "edge", "darkButton", "fsButton", "topUi", "bottomUi", "statusText", "playerStatus", "wordpop", "wpPrev", "wpCur", "wpWord",
     "wpNext", "wpEmoji", "constSvg", "chatStack", "chatMeta"].forEach((id) => { els[id] = $(id); });
 }
 
@@ -639,7 +698,7 @@ function bindEvents() {
   });
   els.edgeButton.addEventListener("click", () => {
     state.edge = EDGE_MODES[(EDGE_MODES.indexOf(state.edge) + 1) % EDGE_MODES.length];
-    store.set("retro-edge-v5", state.edge);
+    store.set("retro-edge-v6", state.edge);
     renderEdge();
     setStatus("EDGE LIGHT: " + state.edge.toUpperCase());
   });
@@ -735,11 +794,12 @@ async function boot() {
   renderLyricScale(); renderOffset();
   state.browserKey = store.get("retro-yt-key", "");
   state.lyricAnimation = store.get("retro-anim", "static") === "scroll" ? "scroll" : "static";
-  state.edge = EDGE_MODES.indexOf(store.get("retro-edge-v5", "warm")) !== -1 ? store.get("retro-edge-v5", "warm") : "warm";
+  state.edge = EDGE_MODES.indexOf(store.get("retro-edge-v6", "comet")) !== -1 ? store.get("retro-edge-v6", "comet") : "comet";
   state.dark = store.get("retro-dark", "on") === "on";
   state.visualTheme = store.get("retro-theme", "neon-grid");
   state.languageMode = store.get("retro-lang", "english");
   renderVisualTheme(); renderLanguageMode(); renderAnimationMode(); renderEdge(); renderDark();
+  if (window.ResizeObserver) new ResizeObserver(() => { if (state.edge !== "off") buildEdge(); }).observe(els.edge);
   els.keyInput.value = state.browserKey;
   renderKeyState(); loadYouTubeApi(); startClock();
   try {

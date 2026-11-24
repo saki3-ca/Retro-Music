@@ -279,19 +279,13 @@ body[data-mode="play"] .c-label { font-size: 5px; }
 body[data-mode="play"] .bubble { font-size: calc(clamp(28px, min(8vh, 4.6vw), 92px) * var(--lyric-scale)); }
 body[data-mode="play"] .bubble.old { font-size: calc(clamp(20px, min(5.2vh, 3.2vw), 64px) * var(--lyric-scale)); }
 
-/* ===== EDGE: RGB light strip running around the screen edge, glowing inward only ===== */
-.edge { --ring: 4px; --halo: 38px; position: absolute; inset: 0; z-index: 100; pointer-events: none; display: none; overflow: hidden; }
+/* ===== EDGE: two neon comets racing around the screen edge (built in JS as SVG) ===== */
+.edge { --edge-c1: #ff8c00; --edge-c2: #5a5cff; --edge-h1: color-mix(in srgb, #fff 62%, var(--edge-c1)); --edge-h2: color-mix(in srgb, #fff 62%, var(--edge-c2)); position: absolute; inset: 0; z-index: 100; pointer-events: none; display: none; overflow: hidden; }
 body:not([data-edge="off"]) .edge { display: block; }
-.edge .clip { position: absolute; inset: 0; overflow: hidden; }
-.edge .ring { clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, var(--ring) var(--ring), var(--ring) calc(100% - var(--ring)), calc(100% - var(--ring)) calc(100% - var(--ring)), calc(100% - var(--ring)) var(--ring), var(--ring) var(--ring)); }
-.edge .halo { position: absolute; inset: 0; filter: blur(18px) saturate(1.5); opacity: .9; }
-.edge .halo .clip { clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, var(--halo) var(--halo), var(--halo) calc(100% - var(--halo)), calc(100% - var(--halo)) calc(100% - var(--halo)), calc(100% - var(--halo)) var(--halo), var(--halo) var(--halo)); }
-.edge .spin { position: absolute; left: 50%; top: 50%; width: 220vmax; height: 220vmax; margin: -110vmax 0 0 -110vmax; will-change: transform; animation: edge-spin 7s linear infinite;
-  background: conic-gradient(from 0deg, var(--pink), var(--orange), var(--pink), var(--orange), var(--pink)); }
-body[data-edge="rgb"] .edge .spin { background: conic-gradient(from 0deg, #ff1744, #ff9100, #ffea00, #00e676, #00e5ff, #2979ff, #d500f9, #ff1744); }
-body[data-edge="album"] .edge .spin { background: conic-gradient(from 0deg, var(--art1), var(--art2), var(--art1), var(--art2), var(--art1)); }
-@keyframes edge-spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .edge .spin { animation: none; } }
+body[data-edge="warm"] .edge { --edge-c1: var(--pink); --edge-c2: var(--orange); }
+body[data-edge="album"] .edge { --edge-c1: var(--art1); --edge-c2: var(--art2); }
+.edge svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.edge path, .edge rect { fill: none; stroke-linecap: butt; }
 
 /* ===== FULLSCREEN: nothing but lyrics (and the edge light) ===== */
 body.is-fs .top-ui, body.is-fs .bottom-ui, body.is-fs .song-info, body.is-fs .theme-selector { display: none !important; }
