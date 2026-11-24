@@ -273,37 +273,23 @@ body[data-mode="play"] .c-label { font-size: 5px; }
 body[data-mode="play"] .bubble { font-size: calc(clamp(28px, min(8vh, 4.6vw), 92px) * var(--lyric-scale)); }
 body[data-mode="play"] .bubble.old { font-size: calc(clamp(20px, min(5.2vh, 3.2vw), 64px) * var(--lyric-scale)); }
 
-/* ===== EDGE: light that hugs the screen edge, bleeds inward and drifts around (no solid frame) ===== */
-body { --edge-w: 3px; --edge-depth: 90px;
-  --edge-hot-a: color-mix(in srgb, #fff 62%, var(--edge-a)); --edge-hot-b: color-mix(in srgb, #fff 50%, var(--edge-b));
-  --edge-soft-a: color-mix(in srgb, var(--edge-a) 60%, transparent); --edge-soft-b: color-mix(in srgb, var(--edge-b) 55%, transparent); }
-.edge { position: absolute; inset: 0; z-index: 100; pointer-events: none; display: none; overflow: hidden;
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--edge-a) 50%, transparent), inset 0 0 46px color-mix(in srgb, var(--edge-a) 18%, transparent); }
-body[data-edge="on"] .edge { display: block; }
-.edge i { position: absolute; display: block; overflow: hidden; }
-.edge i::before { content: ""; position: absolute; will-change: transform; }
-.edge .t, .edge .b { left: 0; right: 0; height: var(--edge-depth); }
-.edge .t { top: 0; } .edge .b { bottom: 0; transform: scaleY(-1); }
-.edge .l, .edge .r { top: 0; bottom: 0; width: var(--edge-depth); }
-.edge .l { left: 0; } .edge .r { right: 0; transform: scaleX(-1); }
-.edge .t::before, .edge .b::before { top: 0; left: 0; width: 300%; height: 100%; background-repeat: repeat-x; background-size: 33.3333% var(--edge-w), 33.3333% 100%, 33.3333% 100%, 33.3333% 100%;
-  background-position: 0 0, 0 0, 0 0, 0 0;
-  background-image:
-    linear-gradient(90deg, transparent 6%, var(--edge-hot-a) 22%, transparent 44%, transparent 56%, var(--edge-hot-b) 66%, transparent 90%),
-    radial-gradient(ellipse 30% 75% at 22% 0, var(--edge-soft-a), transparent 72%),
-    radial-gradient(ellipse 32% 70% at 66% 0, var(--edge-soft-b), transparent 72%),
-    radial-gradient(ellipse 40% 40% at 44% 0, color-mix(in srgb, var(--edge-a) 22%, transparent), transparent 72%); }
-.edge .l::before, .edge .r::before { left: 0; top: 0; height: 300%; width: 100%; background-repeat: repeat-y; background-size: var(--edge-w) 33.3333%, 100% 33.3333%, 100% 33.3333%, 100% 33.3333%;
-  background-position: 0 0, 0 0, 0 0, 0 0;
-  background-image:
-    linear-gradient(180deg, transparent 8%, var(--edge-hot-b) 24%, transparent 46%, transparent 56%, var(--edge-hot-a) 70%, transparent 92%),
-    radial-gradient(ellipse 75% 30% at 0 24%, var(--edge-soft-b), transparent 72%),
-    radial-gradient(ellipse 70% 32% at 0 70%, var(--edge-soft-a), transparent 72%),
-    radial-gradient(ellipse 40% 40% at 0 46%, color-mix(in srgb, var(--edge-b) 22%, transparent), transparent 72%); }
-.edge .t::before { animation: edge-x 8s linear infinite; }
-.edge .b::before { animation: edge-x 11s linear infinite reverse; }
-.edge .l::before { animation: edge-y 10s linear infinite reverse; }
-.edge .r::before { animation: edge-y 13s linear infinite; }
-@keyframes edge-x { from { transform: translateX(0); } to { transform: translateX(-33.3333%); } }
-@keyframes edge-y { from { transform: translateY(0); } to { transform: translateY(-33.3333%); } }
-@media (prefers-reduced-motion: reduce) { .edge i::before { animation: none; } }
+/* ===== EDGE: RGB light strip running around the screen edge, glowing inward only ===== */
+.edge { --ring: 4px; --halo: 38px; position: absolute; inset: 0; z-index: 100; pointer-events: none; display: none; overflow: hidden; }
+body[data-edge="rgb"] .edge, body[data-edge="album"] .edge { display: block; }
+.edge .clip { position: absolute; inset: 0; overflow: hidden; }
+.edge .ring { clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, var(--ring) var(--ring), var(--ring) calc(100% - var(--ring)), calc(100% - var(--ring)) calc(100% - var(--ring)), calc(100% - var(--ring)) var(--ring), var(--ring) var(--ring)); }
+.edge .halo { position: absolute; inset: 0; filter: blur(18px); opacity: .6; }
+.edge .halo .clip { clip-path: polygon(evenodd, 0 0, 100% 0, 100% 100%, 0 100%, 0 0, var(--halo) var(--halo), var(--halo) calc(100% - var(--halo)), calc(100% - var(--halo)) calc(100% - var(--halo)), calc(100% - var(--halo)) var(--halo), var(--halo) var(--halo)); }
+.edge .spin { position: absolute; left: 50%; top: 50%; width: 220vmax; height: 220vmax; margin: -110vmax 0 0 -110vmax; will-change: transform; animation: edge-spin 7s linear infinite;
+  background: conic-gradient(from 0deg, #ff1744, #ff9100, #ffea00, #00e676, #00e5ff, #2979ff, #d500f9, #ff1744); }
+body[data-edge="album"] .edge .spin { background: conic-gradient(from 0deg, var(--art1), var(--art2), var(--art1), var(--art2), var(--art1)); }
+@keyframes edge-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .edge .spin { animation: none; } }
+
+/* ===== FULLSCREEN: nothing but lyrics (and the edge light) ===== */
+body.is-fs .top-ui, body.is-fs .bottom-ui, body.is-fs .song-info, body.is-fs .theme-selector { display: none !important; }
+body.is-fs { cursor: none; }
+
+/* text 20% smaller + symmetric so lyrics sit in the exact middle */
+.lyrics-window { inset: 50px 0 50px; } .wordpop, .constellation, .chat { inset: 50px 0 50px; }
+body[data-mode="play"] .lyrics-window, body[data-mode="play"] .wordpop, body[data-mode="play"] .constellation, body[data-mode="play"] .chat { inset: 0; }

@@ -14,7 +14,7 @@ const state = {
   results: [], currentIndex: -1, currentTrack: null,
   playing: false, currentTime: 0, duration: 0, volume: 80,
   lyricOffset: 0, lyricScale: 1,
-  visualTheme: "neon-grid", lyricAnimation: "static", edge: true, dark: true,
+  visualTheme: "neon-grid", lyricAnimation: "static", edge: "rgb", dark: true,
   lyrics: { mode: "missing", lines: [], plainLines: [] },
   lyricKey: "", renderKey: "",
   browserKey: "", hasServerKey: false, languageMode: "english",
@@ -22,6 +22,7 @@ const state = {
 };
 // Show lines slightly early to hide polling + render latency.
 const LEAD = 0.12;
+const TEXT_BASE = 0.8; // global text size (SIZE buttons are relative to this)
 const clock = { base: 0, at: 0 };
 const translationCache = Object.create(null);
 const els = {};
@@ -149,7 +150,7 @@ const hideResults = () => { els.results.hidden = true; };
 
 function renderOffset() { els.offsetLabelTop.textContent = (state.lyricOffset >= 0 ? "+" : "") + state.lyricOffset.toFixed(1) + "s"; }
 function renderLyricScale() {
-  document.documentElement.style.setProperty("--lyric-scale", state.lyricScale.toFixed(2));
+  document.documentElement.style.setProperty("--lyric-scale", (TEXT_BASE * state.lyricScale).toFixed(3));
   els.sizeLabelTop.textContent = Math.round(state.lyricScale * 100) + "%";
 }
 function renderAnimationMode() {
@@ -163,9 +164,9 @@ function renderDark() {
   els.darkButton.setAttribute("aria-pressed", String(state.dark));
 }
 function renderEdge() {
-  document.body.setAttribute("data-edge", state.edge ? "on" : "off");
-  els.edgeButton.textContent = "EDGE: " + (state.edge ? "ON" : "OFF");
-  els.edgeButton.setAttribute("aria-pressed", String(state.edge));
+  document.body.setAttribute("data-edge", state.edge);
+  els.edgeButton.textContent = "EDGE: " + state.edge.toUpperCase();
+  els.edgeButton.setAttribute("aria-pressed", String(state.edge !== "off"));
 }
 function renderVisualTheme() {
   if (THEMES.indexOf(state.visualTheme) === -1) state.visualTheme = "neon-grid";
@@ -193,6 +194,7 @@ function uiPinned() {
     els.topUi.matches(":hover") || els.bottomUi.matches(":hover");
 }
 function showUi() {
+  if (document.fullscreenElement) return; // fullscreen = pure black, no controls
   document.body.setAttribute("data-ui", "show");
   clearTimeout(uiTimer);
   uiTimer = setTimeout(function hideUi() {
@@ -212,6 +214,8 @@ function toggleFullscreen() {
 // Esc is handled by the browser itself; this only keeps the labels in sync.
 document.addEventListener("fullscreenchange", () => {
   const on = Boolean(document.fullscreenElement);
+  document.body.classList.toggle("is-fs", on);
+  if (!on) showUi();
   document.querySelectorAll("[data-fullscreen]").forEach((b) => {
     if (b.id === "fsButton") b.textContent = on ? "EXIT" : "FULL";
   });
@@ -633,10 +637,10 @@ function bindEvents() {
     setStatus("DARK MODE: " + (state.dark ? "ON" : "OFF"));
   });
   els.edgeButton.addEventListener("click", () => {
-    state.edge = !state.edge;
-    store.set("retro-edge-v3", state.edge ? "on" : "off");
+    state.edge = state.edge === "rgb" ? "album" : state.edge === "album" ? "off" : "rgb";
+    store.set("retro-edge-v4", state.edge);
     renderEdge();
-    setStatus("GLOW EDGE: " + (state.edge ? "ON" : "OFF"));
+    setStatus("EDGE LIGHT: " + state.edge.toUpperCase());
   });
   els.progress.addEventListener("input", () => {
     if (!state.player || !state.duration) return;
@@ -669,6 +673,23 @@ function bindEvents() {
         !(e.target && e.target.closest && e.target.closest("input, textarea, select, [contenteditable='true']"))) {
       toggleFullscreen();
       return;
+    }
+    const typing = e.target && e.target.closest && e.target.closest("input, textarea, select, [contenteditable='true']");
+    if (!typing && state.player && state.currentTrack && state.playerReady) {
+      if (e.code === "ArrowRight" || e.code === "ArrowLeft") {
+        e.preventDefault();
+        state.player.seekTo(Math.max(0, state.currentTime + (e.code === "ArrowRight" ? 5 : -5)), true);
+        syncClock();
+        return;
+      }
+      if (e.code === "ArrowUp" || e.code === "ArrowDown") {
+        e.preventDefault();
+        state.volume = Math.max(0, Math.min(100, state.volume + (e.code === "ArrowUp" ? 5 : -5)));
+        state.player.setVolume(state.volume);
+        els.volume.value = String(state.volume);
+        els.volumeLabel.textContent = Math.round(state.volume) + "%";
+        return;
+      }
     }
     if (e.code !== "Space") return;
     if (e.target && e.target.closest && e.target.closest("input, textarea, select, button, a, [contenteditable='true']")) return;
@@ -713,7 +734,7 @@ async function boot() {
   renderLyricScale(); renderOffset();
   state.browserKey = store.get("retro-yt-key", "");
   state.lyricAnimation = store.get("retro-anim", "static") === "scroll" ? "scroll" : "static";
-  state.edge = store.get("retro-edge-v3", "on") === "on";
+  state.edge = ["rgb", "album", "off"].indexOf(store.get("retro-edge-v4", "rgb")) !== -1 ? store.get("retro-edge-v4", "rgb") : "rgb";
   state.dark = store.get("retro-dark", "on") === "on";
   state.visualTheme = store.get("retro-theme", "neon-grid");
   state.languageMode = store.get("retro-lang", "english");
