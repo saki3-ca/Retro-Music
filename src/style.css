@@ -9,10 +9,10 @@ html, body { margin: 0; height: 100%; overflow: hidden; background: #000; color-
 button, input, select { font: inherit; }
 
 .site-shell {
-  height: 100vh; height: 100dvh; width: 100vw; display: grid; place-items: center; padding: max(4px, .5vh);
+  height: 100vh; height: 100dvh; width: 100vw; display: grid; place-items: center; padding: 0;
   background: #000; overflow: hidden;
 }
-.player { width: min(1500px, 98vw); height: min(98vh, 98dvh); background: #000; display: flex; flex-direction: column; overflow: hidden; }
+.player { width: 100vw; height: 100vh; height: 100dvh; background: #000; display: flex; flex-direction: column; overflow: hidden; }
 
 /* search */
 .search { min-height: 38px; padding: 4px 8px; display: flex; align-items: center; gap: 5px; background: #181818; border-bottom: 1px solid #414141; font-size: clamp(9px, 1.2vh, 12px); flex-shrink: 0; }
@@ -234,8 +234,6 @@ body[data-layout="chat"] .chat { display: flex; }
 body { --edge-a: var(--theme-accent, #fff); --edge-b: var(--theme-secondary, var(--theme-accent, #fff)); --edge-glow: var(--theme-glow, rgba(255,255,255,.3)); }
 body[data-layout="wordpop"], body[data-layout="constellation"], body[data-layout="chat"] { --edge-a: var(--art1); --edge-b: var(--art2); --edge-glow: color-mix(in srgb, var(--art1) 50%, transparent); }
 .player { position: relative; }
-body[data-edge="on"] .player { box-shadow: 0 0 36px var(--edge-glow); }
-body[data-edge="on"] .player::after { content: ""; position: absolute; inset: 0; z-index: 100; pointer-events: none; border: var(--edge-w, 7px) solid transparent; border-image: linear-gradient(135deg, var(--edge-a), var(--edge-b)) 1; box-shadow: inset 0 0 34px var(--edge-glow); }
 #edgeButton[aria-pressed="true"], #darkButton[aria-pressed="true"] { color: var(--theme-accent, #baffba); border-color: var(--theme-accent, #668066); }
 .toggle-button { min-width: clamp(64px, 7vw, 92px); }
 
@@ -274,3 +272,38 @@ body[data-mode="play"] .wp-prev, body[data-mode="play"] .wp-next { font-size: ca
 body[data-mode="play"] .c-label { font-size: 5px; }
 body[data-mode="play"] .bubble { font-size: calc(clamp(28px, min(8vh, 4.6vw), 92px) * var(--lyric-scale)); }
 body[data-mode="play"] .bubble.old { font-size: calc(clamp(20px, min(5.2vh, 3.2vw), 64px) * var(--lyric-scale)); }
+
+/* ===== EDGE: light that hugs the screen edge, bleeds inward and drifts around (no solid frame) ===== */
+body { --edge-w: 3px; --edge-depth: 90px;
+  --edge-hot-a: color-mix(in srgb, #fff 62%, var(--edge-a)); --edge-hot-b: color-mix(in srgb, #fff 50%, var(--edge-b));
+  --edge-soft-a: color-mix(in srgb, var(--edge-a) 60%, transparent); --edge-soft-b: color-mix(in srgb, var(--edge-b) 55%, transparent); }
+.edge { position: absolute; inset: 0; z-index: 100; pointer-events: none; display: none; overflow: hidden;
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--edge-a) 50%, transparent), inset 0 0 46px color-mix(in srgb, var(--edge-a) 18%, transparent); }
+body[data-edge="on"] .edge { display: block; }
+.edge i { position: absolute; display: block; overflow: hidden; }
+.edge i::before { content: ""; position: absolute; will-change: transform; }
+.edge .t, .edge .b { left: 0; right: 0; height: var(--edge-depth); }
+.edge .t { top: 0; } .edge .b { bottom: 0; transform: scaleY(-1); }
+.edge .l, .edge .r { top: 0; bottom: 0; width: var(--edge-depth); }
+.edge .l { left: 0; } .edge .r { right: 0; transform: scaleX(-1); }
+.edge .t::before, .edge .b::before { top: 0; left: 0; width: 300%; height: 100%; background-repeat: repeat-x; background-size: 33.3333% var(--edge-w), 33.3333% 100%, 33.3333% 100%, 33.3333% 100%;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+  background-image:
+    linear-gradient(90deg, transparent 6%, var(--edge-hot-a) 22%, transparent 44%, transparent 56%, var(--edge-hot-b) 66%, transparent 90%),
+    radial-gradient(ellipse 30% 75% at 22% 0, var(--edge-soft-a), transparent 72%),
+    radial-gradient(ellipse 32% 70% at 66% 0, var(--edge-soft-b), transparent 72%),
+    radial-gradient(ellipse 40% 40% at 44% 0, color-mix(in srgb, var(--edge-a) 22%, transparent), transparent 72%); }
+.edge .l::before, .edge .r::before { left: 0; top: 0; height: 300%; width: 100%; background-repeat: repeat-y; background-size: var(--edge-w) 33.3333%, 100% 33.3333%, 100% 33.3333%, 100% 33.3333%;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+  background-image:
+    linear-gradient(180deg, transparent 8%, var(--edge-hot-b) 24%, transparent 46%, transparent 56%, var(--edge-hot-a) 70%, transparent 92%),
+    radial-gradient(ellipse 75% 30% at 0 24%, var(--edge-soft-b), transparent 72%),
+    radial-gradient(ellipse 70% 32% at 0 70%, var(--edge-soft-a), transparent 72%),
+    radial-gradient(ellipse 40% 40% at 0 46%, color-mix(in srgb, var(--edge-b) 22%, transparent), transparent 72%); }
+.edge .t::before { animation: edge-x 8s linear infinite; }
+.edge .b::before { animation: edge-x 11s linear infinite reverse; }
+.edge .l::before { animation: edge-y 10s linear infinite reverse; }
+.edge .r::before { animation: edge-y 13s linear infinite; }
+@keyframes edge-x { from { transform: translateX(0); } to { transform: translateX(-33.3333%); } }
+@keyframes edge-y { from { transform: translateY(0); } to { transform: translateY(-33.3333%); } }
+@media (prefers-reduced-motion: reduce) { .edge i::before { animation: none; } }
