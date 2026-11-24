@@ -164,67 +164,157 @@ function renderDark() {
   els.darkButton.textContent = "DARK: " + (state.dark ? "ON" : "OFF");
   els.darkButton.setAttribute("aria-pressed", String(state.dark));
 }
-/* ----- edge: two comets with fading tails racing around the perimeter ----- */
-const SVGNS = "http://www.w3.org/2000/svg";
-let edgeAnims = [];
-let edgeSize = "";
-const COMET_LAYERS = 14;          // stacked strokes of decreasing length = a tail that fades out
-const COMET_SHARE = 0.36;        // comet length as a share of the whole perimeter
-const COMET_LAP_MS = 5200;
+/* ----- edge: two neon comets on a HiDPI canvas; speed follows the song ----- */
+const EDGE = {
+  canvas: null, ctx: null, w: 0, h: 0, dpr: 1,
+  pos: 0,            // how far both comets have travelled, in laps
+  speed: 0,          // laps per second (eased)
+  dirty: true,
+  parked: [0.30, 0.80],   // where the comets rest on the main screen (fraction of the perimeter)
+  share: 0.34,       // comet length as a share of the perimeter
+  inset: 7,
+  colorKey: "", colors: null
+};
+window.__retroEdge = EDGE; // handy for debugging in the console
+const reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-function buildEdge() {
+function sizeEdge() {
   const host = els.edge;
   if (!host) return;
+  if (!EDGE.canvas) {
+    EDGE.canvas = document.createElement("canvas");
+    EDGE.ctx = EDGE.canvas.getContext("2d");
+    host.appendChild(EDGE.canvas);
+  }
   const w = host.clientWidth, h = host.clientHeight;
   if (!w || !h) return;
-  const key = w + "x" + h;
-  if (key === edgeSize && host.firstChild) return;
-  edgeSize = key;
-  edgeAnims.forEach((a) => a.cancel());
-  edgeAnims = [];
-  host.replaceChildren();
+  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  if (w === EDGE.w && h === EDGE.h && dpr === EDGE.dpr) return;
+  EDGE.w = w; EDGE.h = h; EDGE.dpr = dpr;
+  EDGE.canvas.width = Math.round(w * dpr);
+  EDGE.canvas.height = Math.round(h * dpr);
+  EDGE.dirty = true;
+}
 
-  const inset = 5;
-  const rw = w - inset * 2, rh = h - inset * 2;
+function parseColor(str, fallback) {
+  const v = String(str || "").trim();
+  let m = v.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (m) {
+    let x = m[1];
+    if (x.length === 3) x = x.split("").map((c) => c + c).join("");
+    return [parseInt(x.slice(0, 2), 16), parseInt(x.slice(2, 4), 16), parseInt(x.slice(4, 6), 16)];
+  }
+  m = v.match(/rgba?\(([^)]+)\)/i);
+  if (m) { const p = m[1].split(/[ ,\/]+/).map(Number); return [p[0], p[1], p[2]]; }
+  return fallback;
+}
+
+function edgeColors() {
+  const cs = getComputedStyle(els.edge);
+  const c1 = cs.getPropertyValue("--edge-c1"), c2 = cs.getPropertyValue("--edge-c2");
+  const key = c1 + "|" + c2;
+  if (key !== EDGE.colorKey) {
+    EDGE.colorKey = key;
+    EDGE.colors = [parseColor(c1, [255, 42, 117]), parseColor(c2, [255, 140, 0])];
+  }
+  return EDGE.colors;
+}
+
+// Lyrics-per-second around "now": the song's speed as far as we can know it.
+function lyricRate() {
+  if (state.lyrics.mode === "missing") return 2;
+  const tl = getTimeline();
+  const times = tl.wordTimes;
+  if (!times || !times.length) return 2;
+  const t = state.currentTime + state.lyricOffset;
+  const lo = t - 5, hi = t + 5;
+  let a = 0, b = times.length;
+  while (a < b) { const m = (a + b) >> 1; if (times[m] < lo) a = m + 1; else b = m; }
+  let c = a, d = times.length;
+  while (c < d) { const m = (c + d) >> 1; if (times[m] <= hi) c = m + 1; else d = m; }
+  return (c - a) / 10;
+}
+
+function edgeFrame(dt) {
+  if (state.edge === "off") return;
+  sizeEdge();
+  const active = !reduceMotion && state.currentTrack && state.playing;
+  // words/sec -> seconds per lap: ~1 w/s => 11s, 2 w/s => 5.5s, 4+ w/s => 3.4s
+  const lap = Math.max(3.4, Math.min(11, 11 / Math.max(0.9, lyricRate())));
+  const target = active ? 1 / lap : 0;
+  EDGE.speed += (target - EDGE.speed) * Math.min(1, dt * 2.2);
+  if (target === 0 && EDGE.speed < 0.002) EDGE.speed = 0;
+  if (EDGE.speed > 0) { EDGE.pos = (EDGE.pos + EDGE.speed * dt) % 1; EDGE.dirty = true; }
+  if (EDGE.dirty) drawEdge();
+}
+
+function drawEdge() {
+  const { ctx, w, h, dpr } = EDGE;
+  if (!ctx || !w) return;
+  EDGE.dirty = false;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, EDGE.canvas.width, EDGE.canvas.height);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.lineJoin = "round";
+  const m = EDGE.inset;
+  const rw = w - m * 2, rh = h - m * 2;
   const P = 2 * (rw + rh);
-  const svg = document.createElementNS(SVGNS, "svg");
-  svg.setAttribute("viewBox", `0 0 ${w} ${h}`);
-  const d = `M${inset} ${inset} H${inset + rw} V${inset + rh} H${inset} Z`; // clockwise, sharp corners
-  const reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const bounds = [0, rw, rw + rh, 2 * rw + rh];
+  const pointAt = (s) => {
+    s = ((s % P) + P) % P;
+    if (s <= rw) return [m + s, m];
+    if (s <= rw + rh) return [m + rw, m + (s - rw)];
+    if (s <= 2 * rw + rh) return [m + rw - (s - rw - rh), m + rh];
+    return [m, m + rh - (s - 2 * rw - rh)];
+  };
+  const len = P * EDGE.share;
+  const colors = edgeColors();
+  const falloff = (u) => Math.pow(Math.min(1, Math.max(0, 1 - u)), 1.7); // clamp: rounding can push u slightly past 1
+  const heads = EDGE.parked.map((p) => (p + EDGE.pos) * P);
 
-  [{ color: "var(--edge-c1)", hot: "var(--edge-h1)", phase: 0 }, { color: "var(--edge-c2)", hot: "var(--edge-h2)", phase: 0.5 }].forEach((comet) => {
-    // wide soft glow first, thin bright core on top
-    [{ width: 20, alpha: 0.03 }, { width: 8, alpha: 0.06 }, { width: 3.4, alpha: 0.13 }, { width: 1.8, alpha: 0.22, hot: true }].forEach((pass) => {
-      for (let i = pass.hot ? 6 : 0; i < COMET_LAYERS; i++) {
-        const len = P * COMET_SHARE * (1 - i / COMET_LAYERS);
-        const path = document.createElementNS(SVGNS, "path");
-        path.setAttribute("d", d);
-        path.setAttribute("stroke-dasharray", `${len.toFixed(1)} ${(P - len).toFixed(1)}`);
-        path.style.stroke = pass.hot ? comet.hot : comet.color;
-        path.style.strokeWidth = pass.width + "px";
-        path.style.strokeOpacity = String(pass.alpha);
-        path.style.fill = "none";
-        svg.appendChild(path);
-        if (!reduce) {
-          // head position runs 0 -> P; dash ends at the head, so offset = len - head
-          const a = path.animate(
-            [{ strokeDashoffset: len }, { strokeDashoffset: len - P }],
-            { duration: COMET_LAP_MS, iterations: Infinity, easing: "linear", delay: -COMET_LAP_MS * comet.phase }
-          );
-          edgeAnims.push(a);
-        } else {
-          path.style.strokeDashoffset = String(len - P * (0.25 + comet.phase));
+  // [lineWidth, peak alpha, glow blur, hot?]
+  const passes = [[18, 0.30, 26, false], [5.5, 0.9, 12, false], [2.2, 1, 0, true]];
+  heads.forEach((head, ci) => {
+    const base = colors[ci];
+    const tail = head - len;
+    // split [tail, head] at every corner so each straight piece gets its own gradient
+    const cuts = [tail, head];
+    for (let k = Math.floor(tail / P) - 1; k <= Math.ceil(head / P) + 1; k++) {
+      bounds.forEach((bd) => { const x = bd + k * P; if (x > tail && x < head) cuts.push(x); });
+    }
+    cuts.sort((x, y) => x - y);
+    passes.forEach(([lw, peak, blur, hot]) => {
+      const rgb = hot ? base.map((c) => Math.round(c + (255 - c) * 0.72)) : base;
+      ctx.lineWidth = lw;
+      ctx.lineCap = "butt";
+      ctx.shadowColor = `rgba(${base[0]},${base[1]},${base[2]},0.95)`;
+      ctx.shadowBlur = blur * dpr;
+      for (let i = 0; i < cuts.length - 1; i++) {
+        const x0 = cuts[i], x1 = cuts[i + 1];
+        if (x1 - x0 < 0.01) continue;
+        const p0 = pointAt(x0), p1 = pointAt(x1 - 0.0001);
+        const u0 = (head - x0) / len, u1 = (head - x1) / len;
+        const g = ctx.createLinearGradient(p0[0], p0[1], p1[0], p1[1]);
+        for (let k = 0; k <= 8; k++) {
+          const f = k / 8, u = u0 + (u1 - u0) * f;
+          const al = hot ? Math.max(0, falloff(Math.min(1, u * 1.9))) * peak : falloff(u) * peak;
+          g.addColorStop(f, `rgba(${rgb[0]},${rgb[1]},${rgb[2]},${al.toFixed(3)})`);
         }
+        ctx.strokeStyle = g;
+        ctx.beginPath();
+        ctx.moveTo(p0[0], p0[1]);
+        ctx.lineTo(p1[0], p1[1]);
+        ctx.stroke();
       }
     });
   });
-  host.appendChild(svg);
+  ctx.shadowBlur = 0;
 }
 
 function renderEdge() {
   document.body.setAttribute("data-edge", state.edge);
-  if (state.edge !== "off") buildEdge();
-  edgeAnims.forEach((a) => (state.edge === "off" ? a.pause() : a.play()));
+  EDGE.dirty = true;
+  if (state.edge !== "off") sizeEdge();
   els.edgeButton.textContent = "EDGE: " + state.edge.toUpperCase();
   els.edgeButton.setAttribute("aria-pressed", String(state.edge !== "off"));
 }
@@ -358,6 +448,8 @@ async function loadLyrics(result, searchQuery) {
 function getTimeline() {
   if (!state.timeline || state.timeline.stamp !== state.lyrics || state.timeline.dur !== Math.round(state.duration)) {
     state.timeline = buildWordTimeline(state.lyrics, state.duration);
+    state.timeline.wordTimes = [];
+    state.timeline.lines.forEach((l) => l.words.forEach((w) => state.timeline.wordTimes.push(w.t)));
     state.timeline.stamp = state.lyrics;
     state.timeline.dur = Math.round(state.duration);
   }
@@ -783,9 +875,13 @@ function startClock() {
       els.progress.value = String(Math.min(100, (clock.base / state.duration) * 100));
     }
   }, 250);
-  const frame = () => {
+  let lastFrame = performance.now();
+  const frame = (now) => {
+    const dt = Math.min(0.1, Math.max(0, (now - lastFrame) / 1000));
+    lastFrame = now;
     state.currentTime = state.playing ? clock.base + (performance.now() - clock.at) / 1000 : clock.base;
     tick();
+    edgeFrame(dt);
     requestAnimationFrame(frame);
   };
   requestAnimationFrame(frame);
@@ -801,7 +897,7 @@ async function boot() {
   state.visualTheme = store.get("retro-theme-v2", "word-pop");
   state.languageMode = store.get("retro-lang", "english");
   renderVisualTheme(); renderLanguageMode(); renderAnimationMode(); renderEdge(); renderDark();
-  if (window.ResizeObserver) new ResizeObserver(() => { if (state.edge !== "off") buildEdge(); }).observe(els.edge);
+  if (window.ResizeObserver) new ResizeObserver(() => { if (state.edge !== "off") sizeEdge(); }).observe(els.edge);
   els.keyInput.value = state.browserKey;
   renderKeyState(); loadYouTubeApi(); startClock();
   try {

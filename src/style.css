@@ -214,10 +214,10 @@ body[data-layout="chat"] .chat { display: flex; }
 
 /* chat */
 .chat { flex-direction: column; justify-content: center; align-items: flex-start; gap: 8px; padding: 0 clamp(16px, 4vw, 60px); width: min(1200px, 100%); margin: 0 auto; }
-.chat-meta { font-size: clamp(12px, 2vh, 20px); color: color-mix(in srgb, #fff 55%, var(--art1)); opacity: .8; padding-left: 6px; }
+.chat-meta { font-size: clamp(12px, 2vh, 20px); color: #a8abb0; opacity: .9; padding-left: 6px; }
 .chat-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; }
-.bubble { max-width: 90%; padding: .5em .9em; border-radius: 1.1em; font-size: calc(clamp(24px, min(7vh, 4.4vw), 76px) * var(--lyric-scale)); font-weight: 700; line-height: 1.25; background: rgba(255,126,179,.10); color: var(--text-light); }
-.bubble.cur { background: linear-gradient(135deg, var(--pink), var(--orange)); color: var(--text-white); box-shadow: 0 6px 24px rgba(255,42,117,.35); }
+.bubble { max-width: 90%; padding: .5em .9em; border-radius: 1.1em; font-size: calc(clamp(24px, min(7vh, 4.4vw), 76px) * var(--lyric-scale)); font-weight: 700; line-height: 1.25; background: #303030; color: #e4e6eb; }
+.bubble.cur { background: linear-gradient(135deg, #0a7cff, #0084ff); color: #fff; box-shadow: 0 6px 24px rgba(0,132,255,.35); }
 .bubble.old { opacity: .75; font-size: calc(clamp(18px, min(4.6vh, 3vw), 52px) * var(--lyric-scale)); }
 .bubble.oldest { opacity: .4; }
 
@@ -284,8 +284,7 @@ body[data-mode="play"] .bubble.old { font-size: calc(clamp(20px, min(5.2vh, 3.2v
 body:not([data-edge="off"]) .edge { display: block; }
 body[data-edge="comet"] .edge { --edge-c1: #ff8c00; --edge-c2: #5a5cff; }
 body[data-edge="album"] .edge { --edge-c1: var(--art1); --edge-c2: var(--art2); }
-.edge svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.edge path, .edge rect { fill: none; stroke-linecap: butt; }
+.edge canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
 /* ===== FULLSCREEN: nothing but lyrics (and the edge light) ===== */
 body.is-fs .top-ui, body.is-fs .bottom-ui, body.is-fs .song-info, body.is-fs .theme-selector { display: none !important; }
