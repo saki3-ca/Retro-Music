@@ -15,6 +15,7 @@ function apiDev(env) {
           const mod = await server.ssrLoadModule("/api/" + name + ".js");
           req.query = Object.fromEntries(url.searchParams);
           res.status = (code) => { res.statusCode = code; return res; };
+          res.send = (buf) => { res.end(buf); return res; };
           res.json = (obj) => {
             res.setHeader("content-type", "application/json");
             res.end(JSON.stringify(obj));

@@ -204,9 +204,19 @@ function showUi() {
 function toggleFullscreen() {
   try {
     if (document.fullscreenElement) document.exitFullscreen();
-    else document.documentElement.requestFullscreen();
+    else if (document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen().catch(() => setStatus("FULLSCREEN BLOCKED BY THE BROWSER"));
+    }
   } catch (e) { /* ignore */ }
 }
+// Esc is handled by the browser itself; this only keeps the labels in sync.
+document.addEventListener("fullscreenchange", () => {
+  const on = Boolean(document.fullscreenElement);
+  document.querySelectorAll("[data-fullscreen]").forEach((b) => {
+    if (b.id === "fsButton") b.textContent = on ? "EXIT" : "FULL";
+  });
+  setStatus(on ? "FULLSCREEN // PRESS ESC TO EXIT" : "FULLSCREEN OFF");
+});
 
 /* ---------- track + lyrics loading ---------- */
 function selectTrack(result, index, searchQuery, opts) {
@@ -228,11 +238,18 @@ function selectTrack(result, index, searchQuery, opts) {
   renderResults();
   if (state.playerReady && state.player) { state.player.loadVideoById(result.videoId); state.pendingTrack = null; }
   else setStatus("PLAYER INITIALIZING // TRACK QUEUED");
-  extractPalette(result.videoId).then((p) => {
-    if (state.currentTrack && state.currentTrack.videoId === result.videoId) applyPalette(p);
-  });
+  const first = splitTrack(result);
+  loadPalette(result.videoId, first.artist, first.track, "");
   if (opts && opts.skipLyrics) { setStatus("VIDEO LOADED // PASTE FAILED TO READ TITLE, NO LYRIC LOOKUP"); return; }
   loadLyrics(result, searchQuery || result.title);
+}
+
+function loadPalette(videoId, artist, track, src) {
+  const cover = "/api/cover?" + new URLSearchParams({ artist, track, src: src || "" });
+  const thumb = "https://i.ytimg.com/vi/" + encodeURIComponent(videoId) + "/mqdefault.jpg";
+  extractPalette([cover, thumb]).then((p) => {
+    if (state.currentTrack && state.currentTrack.videoId === videoId) applyPalette(p);
+  });
 }
 
 function applyPalette(p) {
@@ -258,6 +275,7 @@ async function loadLyrics(result, searchQuery) {
     if (has) {
       state.lyrics = payload;
       state.timeline = null;
+      if (payload.artistName && payload.trackName) loadPalette(result.videoId, payload.artistName, payload.trackName, payload.coverArt);
       els.lyricModeTop.textContent = payload.mode === "synced" ? "LRC SYNC" : "PLAIN";
       setStatus(payload.mode === "synced" ? "READY // SYNCED LYRICS FOUND" : "READY // PLAIN LYRICS ONLY");
     } else {
@@ -394,9 +412,9 @@ function renderWordPop(a) {
   els.wpNext.textContent = nx ? (emojiFor(nx) ? emojiFor(nx) + " " : "") + nx : "";
   els.wpWord.textContent = words[i];
   els.wpEmoji.textContent = emojiFor(words[i]);
-  els.wpCur.classList.remove("pop");
-  void els.wpCur.offsetWidth;
-  els.wpCur.classList.add("pop");
+  wp.classList.remove("roll");
+  void wp.offsetWidth;
+  wp.classList.add("roll");
 }
 
 /* ----- constellation ----- */
@@ -580,7 +598,7 @@ const store = {
 
 function bindEvents() {
   els.searchForm.addEventListener("submit", searchSong);
-  els.fsButton.addEventListener("click", toggleFullscreen);
+  document.querySelectorAll("[data-fullscreen]").forEach((b) => b.addEventListener("click", toggleFullscreen));
   ["mousemove", "pointerdown", "touchstart", "wheel"].forEach((ev) => window.addEventListener(ev, showUi, { passive: true }));
   window.addEventListener("keydown", showUi);
   els.configButton.addEventListener("click", () => showSetup());
@@ -644,7 +662,13 @@ function bindEvents() {
     renderLyricScale();
   }));
   window.addEventListener("keydown", (e) => {
-    if (e.code !== "Space" || e.repeat) return;
+    if (e.repeat) return;
+    if (e.code === "KeyF" && !(e.ctrlKey || e.metaKey || e.altKey) &&
+        !(e.target && e.target.closest && e.target.closest("input, textarea, select, [contenteditable='true']"))) {
+      toggleFullscreen();
+      return;
+    }
+    if (e.code !== "Space") return;
     if (e.target && e.target.closest && e.target.closest("input, textarea, select, button, a, [contenteditable='true']")) return;
     e.preventDefault(); togglePlay();
   });

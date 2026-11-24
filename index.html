@@ -22,7 +22,7 @@
       <button id="darkButton" class="retro-button toggle-button" type="button" aria-pressed="true" title="Dark mode">DARK: ON</button>
       <button id="edgeButton" class="retro-button toggle-button" type="button" aria-pressed="true" title="Glowing edge">EDGE: ON</button>
       <button id="configButton" class="retro-button config-button" type="button" aria-expanded="false">SETUP</button>
-      <button id="fsButton" class="retro-button toggle-button" type="button" title="Fullscreen">FULL</button>
+      <button id="fsButton" class="retro-button toggle-button" data-fullscreen type="button" title="Fullscreen (F). Press Esc to exit">FULL</button>
     </form>
 
     <div id="setupPanel" class="setup-panel" hidden>
@@ -110,6 +110,7 @@
         <button id="previousButton" class="retro-button transport-small" type="button" aria-label="Previous result">&#9664;</button>
         <button id="playButton" class="retro-button play" type="button">&#9654; PLAY</button>
         <button id="nextButton" class="retro-button transport-small" type="button" aria-label="Next result">&#9654;</button>
+        <button id="fsButton2" class="retro-button transport-small fs-small" data-fullscreen type="button" title="Fullscreen (F). Press Esc to exit" aria-label="Fullscreen">&#9974;</button>
       </div>
       <div class="progress-row">
         <span id="currentTime">00:00</span>
