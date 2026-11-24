@@ -14,7 +14,7 @@ const state = {
   results: [], currentIndex: -1, currentTrack: null,
   playing: false, currentTime: 0, duration: 0, volume: 80,
   lyricOffset: 0, lyricScale: 1,
-  visualTheme: "word-pop", lyricAnimation: "static", edge: "warm", dark: true,
+  visualTheme: "word-pop", lyricAnimation: "static", edge: "warm", edgeColor: "warm", dark: true,
   lyrics: { mode: "missing", lines: [], plainLines: [] },
   lyricKey: "", renderKey: "",
   browserKey: "", hasServerKey: false, languageMode: "english",
@@ -22,7 +22,7 @@ const state = {
 };
 // Show lines slightly early to hide polling + render latency.
 const LEAD = 0.12;
-const EDGE_MODES = ["warm", "comet", "album", "off"];
+const EDGE_COLORS = ["warm", "comet", "album"]; // colourways; "off" is a separate switch
 const TEXT_BASE = 0.8; // global text size (SIZE buttons are relative to this)
 const clock = { base: 0, at: 0 };
 const translationCache = Object.create(null);
@@ -311,12 +311,25 @@ function drawEdge() {
   ctx.shadowBlur = 0;
 }
 
+function saveEdge() {
+  store.set("retro-edge-v8", state.edge === "off" ? "off" : "on");
+  store.set("retro-edge-color-v8", state.edgeColor);
+}
+function toggleEdge() {
+  state.edge = state.edge === "off" ? state.edgeColor : "off";
+  saveEdge(); renderEdge();
+  setStatus("EDGE LIGHT: " + (state.edge === "off" ? "OFF" : "ON"));
+}
+
 function renderEdge() {
   document.body.setAttribute("data-edge", state.edge);
   EDGE.dirty = true;
   if (state.edge !== "off") sizeEdge();
-  els.edgeButton.textContent = "EDGE: " + state.edge.toUpperCase();
-  els.edgeButton.setAttribute("aria-pressed", String(state.edge !== "off"));
+  const on = state.edge !== "off";
+  els.edgeButton.textContent = "EDGE: " + (on ? "ON" : "OFF");
+  els.edgeButton.setAttribute("aria-pressed", String(on));
+  els.edgeColorButton.textContent = (on ? state.edge : state.edgeColor).toUpperCase();
+  els.edgeColorButton.disabled = !on;
 }
 function renderVisualTheme() {
   if (THEMES.indexOf(state.visualTheme) === -1) state.visualTheme = "word-pop";
@@ -766,7 +779,7 @@ function bindElements() {
   ["searchForm", "songInput", "searchButton", "configButton", "setupPanel", "serverKeyMessage", "browserKeyCopy", "keyInput",
     "saveKeyButton", "results", "nowLabel", "nowPlaying", "themeSelect", "lyricsWindow", "lyric", "lyricModeTop", "offsetLabelTop",
     "sizeLabelTop", "nextLyricTop", "videoPlaceholder", "previousButton", "playButton", "nextButton", "currentTime", "progress",
-    "duration", "volume", "volumeLabel", "animationButton", "edgeButton", "edge", "darkButton", "fsButton", "topUi", "bottomUi", "statusText", "playerStatus", "wordpop", "wpPrev", "wpCur", "wpWord",
+    "duration", "volume", "volumeLabel", "animationButton", "edgeButton", "edgeColorButton", "edge", "darkButton", "fsButton", "topUi", "bottomUi", "statusText", "playerStatus", "wordpop", "wpPrev", "wpCur", "wpWord",
     "wpNext", "wpEmoji", "constSvg", "chatStack", "chatMeta"].forEach((id) => { els[id] = $(id); });
 }
 
@@ -810,11 +823,13 @@ function bindEvents() {
     renderDark();
     setStatus("DARK MODE: " + (state.dark ? "ON" : "OFF"));
   });
-  els.edgeButton.addEventListener("click", () => {
-    state.edge = EDGE_MODES[(EDGE_MODES.indexOf(state.edge) + 1) % EDGE_MODES.length];
-    store.set("retro-edge-v7", state.edge);
-    renderEdge();
-    setStatus("EDGE LIGHT: " + state.edge.toUpperCase());
+  els.edgeButton.addEventListener("click", toggleEdge);
+  els.edgeColorButton.addEventListener("click", () => {
+    const i = EDGE_COLORS.indexOf(state.edge === "off" ? state.edgeColor : state.edge);
+    state.edgeColor = EDGE_COLORS[(i + 1) % EDGE_COLORS.length];
+    state.edge = state.edgeColor;
+    saveEdge(); renderEdge();
+    setStatus("EDGE COLORS: " + state.edgeColor.toUpperCase());
   });
   els.progress.addEventListener("input", () => {
     if (!state.player || !state.duration) return;
@@ -843,6 +858,11 @@ function bindEvents() {
   }));
   window.addEventListener("keydown", (e) => {
     if (e.repeat) return;
+    if (e.code === "KeyE" && !(e.ctrlKey || e.metaKey || e.altKey) &&
+        !(e.target && e.target.closest && e.target.closest("input, textarea, select, [contenteditable='true']"))) {
+      toggleEdge();
+      return;
+    }
     if (e.code === "KeyF" && !(e.ctrlKey || e.metaKey || e.altKey) &&
         !(e.target && e.target.closest && e.target.closest("input, textarea, select, [contenteditable='true']"))) {
       toggleFullscreen();
@@ -912,7 +932,9 @@ async function boot() {
   renderLyricScale(); renderOffset();
   state.browserKey = store.get("retro-yt-key", "");
   state.lyricAnimation = store.get("retro-anim", "static") === "scroll" ? "scroll" : "static";
-  state.edge = EDGE_MODES.indexOf(store.get("retro-edge-v7", "warm")) !== -1 ? store.get("retro-edge-v7", "warm") : "warm";
+  const savedColor = store.get("retro-edge-color-v8", "warm");
+  state.edgeColor = EDGE_COLORS.indexOf(savedColor) !== -1 ? savedColor : "warm";
+  state.edge = store.get("retro-edge-v8", "on") === "off" ? "off" : state.edgeColor;
   state.dark = store.get("retro-dark", "on") === "on";
   state.visualTheme = store.get("retro-theme-v2", "word-pop");
   state.languageMode = store.get("retro-lang", "english");
