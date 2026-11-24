@@ -601,6 +601,25 @@ function renderConstellation(a, lineChanged) {
       x: 14 + ((k + .5) / Math.max(1, n)) * 132 + (rnd() - .5) * 8,
       y: 16 + rnd() * 54 + (k % 2 ? 4 : -4)
     }));
+    // every word gets its own random size (a few are much bigger), stars scale with them
+    const sizes = words.map(() => 0.7 + rnd() * 0.9 + (rnd() < 0.22 ? 0.55 : 0));
+    // nudge neighbours apart vertically when their labels would collide
+    const wEst = (k) => words[k].length * 4.4 * sizes[k] * 0.58;
+    for (let pass = 0; pass < 4; pass++) {
+      for (let a2 = 0; a2 < n; a2++) {
+        for (let b2 = a2 + 1; b2 < n; b2++) {
+          const dx = Math.abs(pts[a2].x - pts[b2].x);
+          if (dx >= (wEst(a2) + wEst(b2)) / 2 + 2) continue;
+          const need = 7.5 * Math.max(sizes[a2], sizes[b2]);
+          const dy = pts[b2].y - pts[a2].y;
+          if (Math.abs(dy) >= need) continue;
+          const push = (need - Math.abs(dy)) / 2 + 0.5;
+          const dir = dy >= 0 ? 1 : -1;
+          pts[b2].y = Math.max(16, Math.min(78, pts[b2].y + dir * push));
+          pts[a2].y = Math.max(16, Math.min(78, pts[a2].y - dir * push));
+        }
+      }
+    }
     for (let k = 1; k < n; k++) {
       const ln = svgEl("line", { x1: pts[k - 1].x, y1: pts[k - 1].y, x2: pts[k].x, y2: pts[k].y, class: "c-line" });
       ln.dataset.k = k; svg.appendChild(ln);
@@ -611,10 +630,11 @@ function renderConstellation(a, lineChanged) {
     }
     pts.forEach((p, k) => {
       const g = svgEl("g", { class: "c-node", transform: `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})` });
+      g.style.setProperty("--s", sizes[k].toFixed(2));
       const star = svgEl("text", { class: "c-dot" });
       star.textContent = "\u2726";
       g.appendChild(star);
-      const t = svgEl("text", { y: -3.6, class: "c-label" });
+      const t = svgEl("text", { y: -(2.4 + 1.3 * sizes[k]), class: "c-label" });
       t.textContent = words[k];
       g.appendChild(t);
       svg.appendChild(g);
