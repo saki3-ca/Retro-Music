@@ -453,8 +453,10 @@ function renderConstellation(a, lineChanged) {
     }
     pts.forEach((p, k) => {
       const g = svgEl("g", { class: "c-node", transform: `translate(${p.x.toFixed(2)} ${p.y.toFixed(2)})` });
-      g.appendChild(svgEl("circle", { r: 1.1, class: "c-dot" }));
-      const t = svgEl("text", { y: -2.6, class: "c-label" });
+      const star = svgEl("text", { class: "c-dot" });
+      star.textContent = "\u2726";
+      g.appendChild(star);
+      const t = svgEl("text", { y: -3.6, class: "c-label" });
       t.textContent = words[k];
       g.appendChild(t);
       svg.appendChild(g);
